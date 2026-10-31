@@ -52,6 +52,7 @@ type Play struct {
 	clear  int // ticks left of the level clear banner
 	caught int // ticks left of the pause after being caught
 	dead   int // ticks since being caught
+	puffs  []firePuff
 }
 
 // New starts a game at a skill.
@@ -119,7 +120,9 @@ func (p *Play) Update(ctx *scene.Context) error {
 		}
 		return nil
 	}
-	for _, e := range p.world.Update(heldDir(in), in.Held(Fire)) {
+	events := p.world.Update(heldDir(in), in.Held(Fire))
+	p.updatePuffs()
+	for _, e := range events {
 		switch e {
 		case world.Dug, world.SackPushed:
 			ctx.Audio.PlayEffect(Dig)
@@ -260,6 +263,7 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 			debug.Box(dst, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), config.CellSize, config.CellSize, sc.Highlight)
 		}
 	}
+	drawPixelMotes(dst, p.motes(), config.FieldX, config.FieldY)
 	if s := w.Shot; s != nil {
 		shot.Draw(dst, 0, float64(config.FieldX+s.X-shot.W/2), float64(config.FieldY+s.Y-shot.H/2), false)
 	}

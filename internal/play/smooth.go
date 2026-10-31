@@ -140,6 +140,7 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 			debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
 		}
 	}
+	drawMotes(at(0, 0), p.motes())
 	if shot := w.Shot; shot != nil {
 		n := at(shot.X, shot.Y)
 		drawShot(dst, n.x, n.y, float64(s*config.ShotSize/2))

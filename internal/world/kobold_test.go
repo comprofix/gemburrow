@@ -394,3 +394,20 @@ func TestACrushDuringAChaseEndsTheChaseBeforeTheDeath(t *testing.T) {
 		t.Errorf("events %v", w.events)
 	}
 }
+
+func TestChangedReportsEachChangeOfForm(t *testing.T) {
+	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 3}: config.LevelDwarf}, 3, 1, 12))
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.GoblinTicks = 3
+	addKobold(w, 12, 3)
+	changes := 0
+	for range 200 {
+		w.Update(None, false)
+		changes += len(w.Changed)
+		if changes >= 2 {
+			return
+		}
+		w.Kobolds[0].impatience = 1 // keep it impatient, whatever it is doing
+	}
+	t.Errorf("%d changes of form", changes)
+}

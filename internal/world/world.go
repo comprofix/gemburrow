@@ -197,6 +197,9 @@ type Shot struct {
 
 // World is one level in progress.
 type World struct {
+	// Changed holds the kobolds that changed form this tick, for the scene to show.
+	Changed []Kobold
+
 	Tuning config.Tuning
 
 	Dwarf       Dwarf
@@ -273,6 +276,7 @@ func (w *World) Cleared() bool { return w.cleared }
 // happened. The slice is valid until the next Update.
 func (w *World) Update(dir Dir, fire bool) []Event {
 	w.events = w.events[:0]
+	w.Changed = w.Changed[:0]
 	if w.cleared || w.Caught {
 		return w.events
 	}
@@ -493,6 +497,7 @@ func (w *World) moveKobold(g *Kobold) {
 	if g.Goblin > 0 {
 		if g.Goblin--; g.Goblin == 0 {
 			g.impatience = 0
+			w.Changed = append(w.Changed, *g)
 		}
 	}
 	g.stuck = false
@@ -521,6 +526,7 @@ func (w *World) growImpatient(g *Kobold) {
 	}
 	if g.impatience > w.Tuning.GoblinAfterTicks {
 		g.Goblin, g.impatience = w.Tuning.GoblinTicks, 0
+		w.Changed = append(w.Changed, *g)
 	}
 }
 

@@ -90,6 +90,14 @@ const (
 	EatPoints      = 200
 	// ChaseWarnTicks is how long fleeing kobolds flash at the chase's start and end.
 	ChaseWarnTicks = 8 * TPS / 5
+	// The kobolds' smoke and fire, and the puff as they change (DESIGN §7). Each
+	// kobold smokes once a cycle, and breathes fire every FlameEveryCycles.
+	PuffTicks          = 2 * TPS / 5
+	BreathCycleTicks   = 5 * TPS
+	BreathStaggerTicks = 97
+	NoseSmokeTicks     = 3 * TPS / 2
+	FlameTicks         = 3 * TPS / 4
+	FlameEveryCycles   = 3
 )
 
 // Tuning is what difficulty and the level ramp change (DESIGN §5).

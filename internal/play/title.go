@@ -175,6 +175,7 @@ func drawTitleSmooth(dst *ebiten.Image, s int, ticks int64) {
 			drawDwarf(n, a.x/stepPixels, pick)
 		}
 	}
+	drawMotes(at(0, config.TitleTunnelRow*config.CellSize), titleMotes(actors, ticks))
 }
 
 func drawTitlePixel(ctx *scene.Context, dst *ebiten.Image, ticks int64) {
@@ -224,4 +225,16 @@ func drawTitlePixel(ctx *scene.Context, dst *ebiten.Image, ticks int64) {
 		}
 		sheet.Sprite(name).Draw(dst, max(frame, 0), float64(a.x), y, a.left)
 	}
+	drawPixelMotes(dst, titleMotes(actors, ticks), 0, y)
+}
+
+// titleMotes is the smoke and fire of the title's kobold, once it is giving chase.
+func titleMotes(actors []titleActor, ticks int64) []mote {
+	var out []mote
+	for i, a := range actors {
+		if a.kind == titleKobold && !a.scared {
+			out = append(out, breath(a.x, 0, a.left, ticks, i, true)...)
+		}
+	}
+	return out
 }
