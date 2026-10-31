@@ -4,11 +4,14 @@ package config
 // game uses in both looks (DESIGN §3, D2).
 const (
 	CellSize  = 32
-	FieldCols = 18
+	FieldCols = 15
 	FieldRows = 10
 	HUDHeight = 40
-	FieldX    = 32
+	FieldX    = 80
 	FieldY    = HUDHeight
+	// HUDX is the HUD's margin. It runs wider than the field, which is too
+	// narrow to hold all of it.
+	HUDX = 32
 )
 
 // Tuning values (DESIGN §5, D4).

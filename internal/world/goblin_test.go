@@ -216,7 +216,7 @@ func TestShotStopsAtTheFieldEdge(t *testing.T) {
 }
 
 func TestShotMustRecharge(t *testing.T) {
-	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, 17))
+	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1))
 	w.Update(None, true)
 	wait := w.Tuning.ShotRechargeTicks
 	if ev := run(w, None, 1); slices.Contains(ev, ShotFired) {
@@ -289,7 +289,7 @@ func TestExtraLifeOnPassingTheThreshold(t *testing.T) {
 
 func TestSameSeedSameChase(t *testing.T) {
 	play := func() (int, int) {
-		cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 4, 0, 17)
+		cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 4, 0, config.FieldCols-1)
 		w, _ := newWorld(t, cells)
 		addGoblin(w, 9, 4)
 		run(w, None, 400)

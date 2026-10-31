@@ -86,7 +86,7 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 
 	// The HUD (DESIGN §3).
 	ty := (s*config.HUDHeight - f.Large.LineHeight()) / 2
-	left, right := s*config.FieldX, s*(config.FieldX+config.FieldCols*config.CellSize)
+	left, right := s*config.HUDX, ctx.Preset.ScreenWidth-s*config.HUDX
 	f.Large.DrawShadowed(dst, fmt.Sprintf("SCORE %06d", ctx.Session.Score), left, ty, sc.Text, sc.Shadow)
 	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), ty, sc.Text, sc.Shadow)
 	lives := fmt.Sprintf("LIVES %d", ctx.Session.Lives)

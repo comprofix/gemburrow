@@ -175,10 +175,10 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 
 	// The HUD (DESIGN §3).
 	ty := (config.HUDHeight - f.Large.LineHeight()) / 2
-	f.Large.DrawShadowed(dst, fmt.Sprintf("SCORE %06d", ctx.Session.Score), config.FieldX, ty, sc.Text, sc.Shadow)
+	f.Large.DrawShadowed(dst, fmt.Sprintf("SCORE %06d", ctx.Session.Score), config.HUDX, ty, sc.Text, sc.Shadow)
 	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), ty, sc.Text, sc.Shadow)
 	lives := fmt.Sprintf("LIVES %d", ctx.Session.Lives)
-	f.Large.DrawShadowed(dst, lives, config.FieldX+config.FieldCols*config.CellSize-f.Large.Width(lives), ty, sc.Text, sc.Shadow)
+	f.Large.DrawShadowed(dst, lives, ctx.Preset.ScreenWidth-config.HUDX-f.Large.Width(lives), ty, sc.Text, sc.Shadow)
 	shot := sheet.Sprite("shot")
 	if w.Recharge == 0 {
 		shot.Draw(dst, 0, shotReadyX, float64((config.HUDHeight-shot.H)/2), false)

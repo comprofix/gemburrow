@@ -132,16 +132,16 @@ func summary(h *scenetest.Harness, p *Play) string {
 func TestGoldenSackDrop(t *testing.T) {
 	h, p := start(t)
 	rows := []string{
-		"##################",
-		"##################",
-		"##################",
-		"##################",
-		"#####$############",
-		"##################",
-		"##################",
-		"=====D============",
-		"##################",
-		"####*############G",
+		"###############",
+		"###############",
+		"###############",
+		"###############",
+		"#####$#########",
+		"###############",
+		"###############",
+		"=====D=========",
+		"###############",
+		"####*#########G",
 	}
 	l, err := world.Parse(rows)
 	if err != nil {
@@ -227,7 +227,7 @@ func TestGoldenSackPush(t *testing.T) {
 	h, p := start(t)
 	w := p.World()
 	w.Tuning.GoblinTotal = 0
-	walk(h, p, ebiten.KeyArrowLeft, 4)
+	walk(h, p, ebiten.KeyArrowLeft, 5)
 	walk(h, p, ebiten.KeyArrowDown, 1)
 	// Pushing is at half walking speed, so this is two cells.
 	h.Run(scenetest.Hold(4*ticksPerCell, ebiten.KeyArrowLeft))

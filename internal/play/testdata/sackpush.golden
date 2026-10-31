@@ -1,15 +1,15 @@
 score 25  lives 3  jewels left 17  level 1
 dwarf (64, 160)  caught false  over false
 goblins []  entered 0  killed 0
-##*#####==#####*##
-#####*##==##*#####
-##*#####==#####*##
-#####*##==##*#####
-==================
-##D==###==#####*##
-#####*##==##*#####
-##*#####==#####*##
-#####*##==##*#####
-##*#####==#####*##
+#*###*###======
+#########=##*##
+#*#####*#=#####
+####*####=###*#
+===============
+##D==####=###*#
+####*####=#####
+#*#####*#=##*##
+###*#####=#*###
+#*#####*#=####*
 
-sacks [{X:128 Y:32 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:416 Y:32 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:32 Y:160 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:448 Y:160 State:0 Wobble:0 Slide:0 Fallen:0 gone:false}]
+sacks [{X:96 Y:32 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:352 Y:64 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:32 Y:160 State:0 Wobble:0 Slide:0 Fallen:0 gone:false} {X:384 Y:160 State:0 Wobble:0 Slide:0 Fallen:0 gone:false}]
