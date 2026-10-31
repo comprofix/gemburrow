@@ -67,6 +67,11 @@ var (
 		Voice: audio.Voice{Wave: audio.Triangle, Decay: audio.Ticks(10), Sustain: 0.4, Release: audio.Ticks(4), Volume: 0.8},
 		Notes: audio.Notes("C5:4 G5:4 C6:10"),
 	}}
+	// TankardUp is the tankard appearing.
+	TankardUp = &audio.Effect{Name: "tankard up", Channel: 1, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Triangle, Decay: audio.Ticks(10), Sustain: 0.4, Release: audio.Ticks(4), Volume: 0.8},
+		Notes: audio.Notes("G5:4 E5:4 G5:4 C6:10"),
+	}}
 	// MushroomTaken is the mushroom collected, starting the chase.
 	MushroomTaken = &audio.Effect{Name: "mushroom taken", Channel: 0, Priority: 5, Part: audio.Part{
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.5, Release: audio.Ticks(4), Volume: 0.8},
@@ -87,5 +92,5 @@ var (
 // Sounds are the game's sounds, for the sound test.
 var Sounds = audio.Bank{Tunes: []*audio.Tune{BurrowTune, ChaseTune, FuneralTune, ScoresTune}, Effects: []*audio.Effect{
 	Dig, Jewel, JewelRun, LevelClear, Fired, KoboldDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
-	MushroomUp, MushroomTaken, KoboldEaten,
+	MushroomUp, TankardUp, MushroomTaken, KoboldEaten,
 }}

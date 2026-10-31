@@ -124,6 +124,10 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 		drawMushroom(at(m.X*config.CellSize, m.Y*config.CellSize), int(p.ticks/jewelTicks))
 	}
 
+	if t := w.Tankard; p.pickupShown(t) {
+		drawTankard(at(t.X*config.CellSize, t.Y*config.CellSize))
+	}
+
 	// The kobolds and the shot.
 	for i, g := range w.Kobolds {
 		if p.buried(g) {
@@ -521,6 +525,24 @@ func drawMushroom(n pen, frame int) {
 	n.circle(11, 10, 2.6, resurrect64.Lavender)
 	n.circle(20, 8, 2, resurrect64.White)
 	n.circle(22, 14, 2.4, resurrect64.Lavender)
+}
+
+// drawTankard is the extra life: a banded wooden tankard, foaming over.
+func drawTankard(n pen) {
+	n.line(23, 13, 29, 13, 2.8, resurrect64.Bark)
+	n.line(29, 13, 29, 24, 2.8, resurrect64.Bark)
+	n.line(29, 24, 23, 24, 2.8, resurrect64.Bark)
+	n.rect(3, 10, 21, 20, 2.5, resurrect64.Clay)
+	n.rect(5.5, 12, 3, 16, 1.5, resurrect64.Sand)
+	n.rect(3, 10, 21, 2.5, 1, resurrect64.Bark)
+	n.rect(3, 18.5, 21, 2.5, 1, resurrect64.Bark)
+	n.rect(3, 27.5, 21, 2.5, 1, resurrect64.Bark)
+	n.circle(7, 8, 4.5, resurrect64.White)
+	n.circle(13.5, 6, 5.5, resurrect64.White)
+	n.circle(20, 8, 4.5, resurrect64.White)
+	n.rect(16, 9, 4, 7, 2, resurrect64.White)
+	n.circle(12, 6, 1.5, resurrect64.Mist)
+	n.circle(20, 8.5, 1.3, resurrect64.Mist)
 }
 
 // headstonePen is the pen for the headstone in the dwarf's cell of the given

@@ -81,6 +81,7 @@ const (
 	MushroomTaken
 	KoboldEaten
 	ChaseOver
+	TankardAppeared
 )
 
 // Level is a parsed layout.
@@ -240,6 +241,7 @@ type World struct {
 	Caught      bool // the dwarf was caught; nothing moves until Respawn
 	Over        bool // caught with no lives left
 	Mushroom    Pickup
+	Tankard     Pickup
 	Chase       int // ticks left of the chase, when kobolds flee and can be eaten
 
 	level        *Level
@@ -270,6 +272,10 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		spawnWait: t.KoboldSpawnTicks,
 		dist:      make([]int, len(l.earth)),
 		Mushroom:  newPickup(rng, config.MushroomDelayMinTicks, config.MushroomDelayMaxTicks, config.MushroomShowTicks),
+		Tankard:   Pickup{done: true},
+	}
+	if t.TankardOneIn > 0 && rng.IntN(t.TankardOneIn) == 0 {
+		w.Tankard = newPickup(rng, config.TankardDelayMinTicks, config.TankardDelayMaxTicks, config.TankardShowTicks)
 	}
 	w.placeDwarf()
 	for _, s := range l.sacks {
@@ -317,6 +323,10 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 	}
 	w.spawn()
 	w.updateChase()
+	if w.updatePickup(&w.Tankard, TankardAppeared) {
+		w.session.Lives++
+		w.events = append(w.events, ExtraLife)
+	}
 	for i := range w.Kobolds {
 		w.moveKobold(&w.Kobolds[i])
 	}
@@ -764,7 +774,9 @@ func (w *World) pickCell() (x, y int, ok bool) {
 func (w *World) pickupFits(x, y int) bool {
 	dx, dy := w.Dwarf.cell()
 	if w.Earth(x, y) || w.Jewel(x, y) || abs(x-dx)+abs(y-dy) < config.PickupMinCells ||
-		(x == w.level.spawnX && y == w.level.spawnY) || (w.Mushroom.Showing && x == w.Mushroom.X && y == w.Mushroom.Y) {
+		(x == w.level.spawnX && y == w.level.spawnY) ||
+		(w.Mushroom.Showing && x == w.Mushroom.X && y == w.Mushroom.Y) ||
+		(w.Tankard.Showing && x == w.Tankard.X && y == w.Tankard.Y) {
 		return false
 	}
 	touches := func(px, py int) bool {
@@ -1136,6 +1148,7 @@ func (w *World) Respawn() {
 	w.Caught = false
 	w.jewelRun, w.jewelRunWait = 0, 0
 	w.Mushroom.lose()
+	w.Tankard.lose()
 	w.spawnWait = w.Tuning.KoboldSpawnTicks
 	w.placeDwarf()
 }

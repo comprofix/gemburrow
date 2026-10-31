@@ -150,6 +150,8 @@ func (p *Play) Update(ctx *scene.Context) error {
 		case world.MushroomTaken:
 			ctx.Audio.PlayEffect(MushroomTaken)
 			ctx.Audio.PlayTune(ChaseTune)
+		case world.TankardAppeared:
+			ctx.Audio.PlayEffect(TankardUp)
 		case world.KoboldEaten:
 			ctx.Audio.PlayEffect(KoboldEaten)
 		case world.ChaseOver:
@@ -243,6 +245,10 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 
 	if m := w.Mushroom; p.pickupShown(m) {
 		sheet.Sprite("mushroom").Draw(dst, 0, float64(config.FieldX+m.X*config.CellSize), float64(config.FieldY+m.Y*config.CellSize), false)
+	}
+
+	if t := w.Tankard; p.pickupShown(t) {
+		sheet.Sprite("tankard").Draw(dst, 0, float64(config.FieldX+t.X*config.CellSize), float64(config.FieldY+t.Y*config.CellSize), false)
 	}
 
 	// The kobolds and the shot.

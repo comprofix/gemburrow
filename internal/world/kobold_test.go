@@ -545,3 +545,109 @@ func TestChangedReportsEachChangeOfForm(t *testing.T) {
 	}
 	t.Errorf("%d changes of form", changes)
 }
+
+// tankardWorld is quietWorld with its mushroom gone and a tankard due next tick.
+func tankardWorld(t *testing.T) (*World, *session.Session) {
+	t.Helper()
+	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
+	w, s := newWorld(t, cells)
+	w.Tuning.KoboldTotal = 0
+	w.Mushroom.done = true
+	w.Tankard = Pickup{show: config.TankardShowTicks}
+	return w, s
+}
+
+func TestThereIsNoTankardBeforeItsFirstLevel(t *testing.T) {
+	l, err := Parse(config.LevelFor(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for level := 1; level < config.TankardFirstLevel; level++ {
+		tuning := config.TuningFor(config.Skills[1], level)
+		for seed := range uint64(50) {
+			w := New(session.New(config.Skills[1], 3), l, tuning, rand.New(rand.NewPCG(seed, 3)))
+			if !w.Tankard.done {
+				t.Fatalf("level %d, seed %d: a tankard is due", level, seed)
+			}
+		}
+	}
+}
+
+func TestATankardComesOneLevelInThreeWithinItsDelays(t *testing.T) {
+	l, err := Parse(config.LevelFor(3))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tuning := config.TuningFor(config.Skills[1], config.TankardFirstLevel)
+	due := func(seed uint64) (Pickup, bool) {
+		w := New(session.New(config.Skills[1], 3), l, tuning, rand.New(rand.NewPCG(seed, 4)))
+		return w.Tankard, !w.Tankard.done
+	}
+	const runs = 3000
+	count := 0
+	for seed := range uint64(runs) {
+		p, ok := due(seed)
+		if !ok {
+			continue
+		}
+		count++
+		if p.wait < config.TankardDelayMinTicks || p.wait > config.TankardDelayMaxTicks {
+			t.Errorf("seed %d: wait %d", seed, p.wait)
+		}
+		if q, _ := due(seed); p != q {
+			t.Errorf("seed %d: %+v then %+v", seed, p, q)
+		}
+	}
+	if count < runs/config.TankardOneIn-100 || count > runs/config.TankardOneIn+100 {
+		t.Errorf("%d tankards in %d levels", count, runs)
+	}
+}
+
+func TestTakingATankardGivesOneLifeAndNoPoints(t *testing.T) {
+	w, s := tankardWorld(t)
+	w.Tankard = Pickup{X: 0, Y: 0, Showing: true, Ticks: 100}
+	lives := s.Lives
+	ev := run(w, None, 1)
+	if s.Lives != lives+1 || s.Score != 0 || w.Tankard.Showing || !slices.Contains(ev, ExtraLife) {
+		t.Errorf("lives %d, score %d, tankard %+v, events %v", s.Lives, s.Score, w.Tankard, ev)
+	}
+	if run(w, None, 1); s.Lives != lives+1 {
+		t.Errorf("a second life: %d", s.Lives)
+	}
+}
+
+func TestATankardVanishesOnTime(t *testing.T) {
+	w, s := tankardWorld(t)
+	lives := s.Lives
+	ev := run(w, None, config.TankardShowTicks-1)
+	if !w.Tankard.Showing || !slices.Contains(ev, TankardAppeared) {
+		t.Fatalf("tankard %+v, events %v", w.Tankard, ev)
+	}
+	run(w, None, 1)
+	if w.Tankard.Showing || s.Lives != lives {
+		t.Errorf("tankard %+v, lives %d", w.Tankard, s.Lives)
+	}
+}
+
+func TestADeathLosesAShowingTankard(t *testing.T) {
+	w, _ := tankardWorld(t)
+	run(w, None, 1)
+	w.catchDwarf()
+	w.Respawn()
+	if ev := run(w, None, config.TankardDelayMaxTicks); w.Tankard.Showing || slices.Contains(ev, TankardAppeared) {
+		t.Errorf("came back: %+v", w.Tankard)
+	}
+}
+
+func TestPickupsNeverShareACell(t *testing.T) {
+	w, _ := tankardWorld(t)
+	w.Mushroom = Pickup{X: 8, Y: 0, Showing: true, Ticks: 1000}
+	if w.pickupFits(8, 0) {
+		t.Error("fits on the mushroom")
+	}
+	w.Mushroom = Pickup{done: true}
+	w.Tankard = Pickup{X: 9, Y: 0, Showing: true, Ticks: 1000}
+	if w.pickupFits(9, 0) {
+		t.Error("fits on the tankard")
+	}
+}

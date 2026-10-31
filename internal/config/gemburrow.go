@@ -92,6 +92,14 @@ const (
 	PickupWarnTicks       = TPS
 	MushroomPoints        = 1000
 	EatPoints             = 200
+	// The tankard of ale (DESIGN §6, D12): from TankardFirstLevel, one level in
+	// TankardOneIn has one, appearing between its two delays into the level for
+	// TankardShowTicks.
+	TankardFirstLevel    = 3
+	TankardOneIn         = 3
+	TankardDelayMinTicks = 30 * TPS
+	TankardDelayMaxTicks = 60 * TPS
+	TankardShowTicks     = 8 * TPS
 	// ChaseWarnTicks is how long fleeing kobolds flash at the chase's start and end.
 	ChaseWarnTicks = 8 * TPS / 5
 	// The kobolds' smoke and fire, and the puff as they change (DESIGN §7). Each
@@ -120,6 +128,8 @@ type Tuning struct {
 	GoblinAfterTicks int
 	GoblinTicks      int // how long it stays one
 	ChaseTicks       int // how long the chase lasts
+	// TankardOneIn gives the level a tankard, one time in this many; 0 means never.
+	TankardOneIn int
 }
 
 // The level ramp (DESIGN §5, §11). It stops rising at RampLevels. Counts the
@@ -147,7 +157,12 @@ func TuningFor(s Skill, level int) Tuning {
 	case l >= 8:
 		atOnce = 5
 	}
+	tankard := 0
+	if level >= TankardFirstLevel {
+		tankard = TankardOneIn
+	}
 	return Tuning{
+		TankardOneIn:      tankard,
 		KoboldSpeed:       rampKoboldSpeed,
 		KoboldExtraOneIn:  max(15-l+s.ExtraRarity, rampMinExtraOneIn),
 		KoboldTotal:       max(l+5+s.ExtraKobolds, rampMinKobolds),
