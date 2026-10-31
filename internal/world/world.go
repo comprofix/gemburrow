@@ -195,6 +195,31 @@ type Shot struct {
 	Dir  Dir
 }
 
+// Pickup is an item that appears once in a level, after a wait, for a limited
+// time (DESIGN §6). X and Y are its cell.
+type Pickup struct {
+	X, Y    int
+	Showing bool
+	Ticks   int // ticks left of showing
+
+	wait int  // ticks until it appears
+	show int  // how long it will show
+	done bool // it has been and gone, or never comes
+}
+
+// newPickup schedules a pickup between two delays.
+func newPickup(rng *rand.Rand, minWait, maxWait, show int) Pickup {
+	return Pickup{wait: minWait + rng.IntN(maxWait-minWait+1), show: show}
+}
+
+// lose takes away a pickup that is showing, for good. One still to come is left
+// to appear on time.
+func (p *Pickup) lose() {
+	if p.Showing {
+		p.Showing, p.done = false, true
+	}
+}
+
 // World is one level in progress.
 type World struct {
 	// Changed holds the kobolds that changed form this tick, for the scene to show.
@@ -214,8 +239,8 @@ type World struct {
 	Killed      int
 	Caught      bool // the dwarf was caught; nothing moves until Respawn
 	Over        bool // caught with no lives left
-	Mushroom    bool // the mushroom is showing (DESIGN §6)
-	Chase       int  // ticks left of the chase, when kobolds flee and can be eaten
+	Mushroom    Pickup
+	Chase       int // ticks left of the chase, when kobolds flee and can be eaten
 
 	level        *Level
 	session      *session.Session
@@ -225,10 +250,9 @@ type World struct {
 	spawnWait    int
 	pressed      Dir // the direction pushed this tick, for holding up a sack
 	cleared      bool
-	jewelRun     int  // jewels taken in the current run
-	jewelRunWait int  // ticks left to take the next one
-	mushroomDone bool // the level's one mushroom has appeared
-	eatPoints    int  // what the next kobold eaten scores
+	jewelRun     int // jewels taken in the current run
+	jewelRunWait int // ticks left to take the next one
+	eatPoints    int // what the next kobold eaten scores
 	events       []Event
 	dist         []int // scratch: tunnel distance from the dwarf
 	queue        []int // scratch: the breadth-first search's queue
@@ -245,6 +269,7 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		jewels:    append([]bool(nil), l.jewels...),
 		spawnWait: t.KoboldSpawnTicks,
 		dist:      make([]int, len(l.earth)),
+		Mushroom:  newPickup(rng, config.MushroomDelayMinTicks, config.MushroomDelayMaxTicks, config.MushroomShowTicks),
 	}
 	w.placeDwarf()
 	for _, s := range l.sacks {
@@ -676,16 +701,97 @@ func (w *World) measure(digs bool) {
 	}
 }
 
-// updateChase shows the level's one mushroom once all its kobolds have entered,
-// lets the dwarf collect it, which starts the chase, and runs the chase down
-// (DESIGN §6).
-func (w *World) updateChase() {
-	if !w.mushroomDone && w.Tuning.KoboldTotal > 0 && w.Spawned >= w.Tuning.KoboldTotal {
-		w.mushroomDone, w.Mushroom = true, true
-		w.events = append(w.events, MushroomAppeared)
+// updatePickup runs a pickup's wait and time showing, and reports whether the
+// dwarf has just collected it. If no cell is open when its wait is over, it
+// tries again each tick.
+func (w *World) updatePickup(p *Pickup, appeared Event) bool {
+	if p.done {
+		return false
 	}
-	if x, y := w.Dwarf.cell(); w.Mushroom && x == config.MushroomCol && y == config.MushroomRow {
-		w.Mushroom = false
+	if !p.Showing {
+		if p.wait > 0 {
+			p.wait--
+			return false
+		}
+		x, y, ok := w.pickCell()
+		if !ok {
+			return false
+		}
+		p.X, p.Y, p.Showing, p.Ticks = x, y, true, p.show
+		w.events = append(w.events, appeared)
+	}
+	if x, y := w.Dwarf.cell(); x == p.X && y == p.Y {
+		p.Showing, p.done = false, true
+		return true
+	}
+	if p.Ticks--; p.Ticks <= 0 {
+		p.Showing, p.done = false, true
+	}
+	return false
+}
+
+// pickCell chooses a random open cell for a pickup (DESIGN §6). It looks at the
+// cells in a fixed order, so that a seed always gives the same choice.
+func (w *World) pickCell() (x, y int, ok bool) {
+	open := 0
+	for y := range config.FieldRows {
+		for x := range config.FieldCols {
+			if w.pickupFits(x, y) {
+				open++
+			}
+		}
+	}
+	if open == 0 {
+		return 0, 0, false
+	}
+	choice := w.rng.IntN(open)
+	for y := range config.FieldRows {
+		for x := range config.FieldCols {
+			if w.pickupFits(x, y) {
+				if choice == 0 {
+					return x, y, true
+				}
+				choice--
+			}
+		}
+	}
+	return 0, 0, false
+}
+
+// pickupFits reports whether cell (x, y) is open: clear of earth, a jewel, a
+// sack, gold, a kobold, another pickup and the kobolds' entrance, and far enough
+// from the dwarf.
+func (w *World) pickupFits(x, y int) bool {
+	dx, dy := w.Dwarf.cell()
+	if w.Earth(x, y) || w.Jewel(x, y) || abs(x-dx)+abs(y-dy) < config.PickupMinCells ||
+		(x == w.level.spawnX && y == w.level.spawnY) || (w.Mushroom.Showing && x == w.Mushroom.X && y == w.Mushroom.Y) {
+		return false
+	}
+	touches := func(px, py int) bool {
+		return abs(px-x*config.CellSize) < config.CellSize && abs(py-y*config.CellSize) < config.CellSize
+	}
+	for _, s := range w.Sacks {
+		if touches(s.X, s.Y) {
+			return false
+		}
+	}
+	for _, g := range w.Kobolds {
+		if touches(g.X, g.Y) {
+			return false
+		}
+	}
+	for _, g := range w.Gold {
+		if g.X == x && g.Y == y {
+			return false
+		}
+	}
+	return true
+}
+
+// updateChase runs the level's one mushroom, whose collecting starts the chase,
+// and runs the chase down (DESIGN §6).
+func (w *World) updateChase() {
+	if w.updatePickup(&w.Mushroom, MushroomAppeared) {
 		w.Chase, w.eatPoints = w.Tuning.ChaseTicks, config.EatPoints
 		w.addScore(config.MushroomPoints)
 		w.events = append(w.events, MushroomTaken)
@@ -1029,7 +1135,7 @@ func (w *World) Respawn() {
 	w.Recharge = 0
 	w.Caught = false
 	w.jewelRun, w.jewelRunWait = 0, 0
-	w.Mushroom, w.mushroomDone = false, false
+	w.Mushroom.lose()
 	w.spawnWait = w.Tuning.KoboldSpawnTicks
 	w.placeDwarf()
 }

@@ -120,8 +120,8 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 		drawSack(at(x, sack.Y))
 	}
 
-	if w.Mushroom {
-		drawMushroom(at(config.MushroomCol*config.CellSize, config.MushroomRow*config.CellSize), int(p.ticks/jewelTicks))
+	if m := w.Mushroom; p.pickupShown(m) {
+		drawMushroom(at(m.X*config.CellSize, m.Y*config.CellSize), int(p.ticks/jewelTicks))
 	}
 
 	// The kobolds and the shot.

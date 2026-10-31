@@ -241,8 +241,8 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		sack.Draw(dst, 0, float64(sx), float64(config.FieldY+s.Y), false)
 	}
 
-	if w.Mushroom {
-		sheet.Sprite("mushroom").Draw(dst, 0, float64(config.FieldX+config.MushroomCol*config.CellSize), float64(config.FieldY+config.MushroomRow*config.CellSize), false)
+	if m := w.Mushroom; p.pickupShown(m) {
+		sheet.Sprite("mushroom").Draw(dst, 0, float64(config.FieldX+m.X*config.CellSize), float64(config.FieldY+m.Y*config.CellSize), false)
 	}
 
 	// The kobolds and the shot.
@@ -295,6 +295,12 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	case w.Over:
 		banner(ctx, dst, "GAME OVER")
 	}
+}
+
+// pickupShown reports whether a pickup is drawn this tick: it flickers as it
+// runs out (DESIGN §6).
+func (p *Play) pickupShown(item world.Pickup) bool {
+	return item.Showing && (item.Ticks > config.PickupWarnTicks || (p.ticks/flashTicks)%2 == 0)
 }
 
 // headstone reports whether the caught dwarf has given way to its headstone.

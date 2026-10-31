@@ -81,13 +81,17 @@ const (
 	TitleWalkPixels   = 1
 	TitleGapPixels    = 52
 	TitlePassTicks    = 840
-	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears in
-	// the field's top-right cell. Kobolds eaten in a chase score EatPoints, then
-	// double each.
-	MushroomCol    = FieldCols - 1
-	MushroomRow    = 0
-	MushroomPoints = 1000
-	EatPoints      = 200
+	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears
+	// between its two delays into the level, at least PickupMinCells from the
+	// dwarf, for MushroomShowTicks, and PickupWarnTicks of that it flickers.
+	// Kobolds eaten in a chase score EatPoints, then double each.
+	MushroomDelayMinTicks = 15 * TPS
+	MushroomDelayMaxTicks = 30 * TPS
+	MushroomShowTicks     = 10 * TPS
+	PickupMinCells        = 4
+	PickupWarnTicks       = TPS
+	MushroomPoints        = 1000
+	EatPoints             = 200
 	// ChaseWarnTicks is how long fleeing kobolds flash at the chase's start and end.
 	ChaseWarnTicks = 8 * TPS / 5
 	// The kobolds' smoke and fire, and the puff as they change (DESIGN §7). Each

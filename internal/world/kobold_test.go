@@ -1,6 +1,7 @@
 package world
 
 import (
+	"math/rand/v2"
 	"slices"
 	"testing"
 
@@ -303,36 +304,173 @@ func TestSameSeedSameChase(t *testing.T) {
 	}
 }
 
-// chaseWorld is a level with an open row to the mushroom's corner, its one
-// kobold entered, and the dwarf at the row's other end.
+// chaseWorld is a level with one open row and its one kobold still to enter, the
+// dwarf at the row's end, and no mushroom on its way.
 func chaseWorld(t *testing.T) (*World, *session.Session) {
 	t.Helper()
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
 	w, s := newWorld(t, cells)
 	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks, w.spawnWait = -1, 0, 0
 	w.Tuning.KoboldTotal = 1
+	w.Mushroom.done = true
 	return w, s
 }
 
-func TestTheMushroomAppearsOnceAllKoboldsHaveEntered(t *testing.T) {
-	w, _ := chaseWorld(t)
-	if w.Mushroom {
-		t.Fatal("showing from the start")
+// quietWorld is a level with one open row, no kobolds to enter, and a mushroom
+// due next tick.
+func quietWorld(t *testing.T) *World {
+	t.Helper()
+	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
+	w, _ := newWorld(t, cells)
+	w.Tuning.KoboldTotal = 0
+	w.Mushroom.wait = 0
+	return w
+}
+
+func TestTheMushroomIsDueWithinItsDelays(t *testing.T) {
+	for seed := range uint64(50) {
+		w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1))
+		w.rng = rand.New(rand.NewPCG(seed, 1))
+		m := newPickup(w.rng, config.MushroomDelayMinTicks, config.MushroomDelayMaxTicks, config.MushroomShowTicks)
+		if m.wait < config.MushroomDelayMinTicks || m.wait > config.MushroomDelayMaxTicks {
+			t.Errorf("seed %d: wait %d", seed, m.wait)
+		}
 	}
-	ev := run(w, None, 2)
-	if !w.Mushroom || !slices.Contains(ev, MushroomAppeared) {
-		t.Errorf("mushroom %v, entered %d, events %v", w.Mushroom, w.Spawned, ev)
+}
+
+// Every layout must show its mushroom with no kobold killed, however the dwarf
+// fares, which is what the playtest to level 7 never saw (DESIGN D7).
+func TestEveryLevelShowsAMushroomWithNoKills(t *testing.T) {
+	for n := 1; n <= len(config.Levels); n++ {
+		l, err := Parse(config.LevelFor(n))
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := session.New(config.Skills[1], 1000)
+		w := New(s, l, config.TuningFor(config.Skills[1], n), rand.New(rand.NewPCG(uint64(n), 1)))
+		for range config.MushroomDelayMaxTicks + 1 {
+			w.Update(None, false)
+			if w.Mushroom.Showing || w.Cleared() {
+				break
+			}
+			if w.Caught {
+				w.Respawn()
+			}
+		}
+		if !w.Mushroom.Showing {
+			t.Errorf("level %d: no mushroom, wait %d, cleared %v", n, w.Mushroom.wait, w.Cleared())
+		}
+	}
+}
+
+func TestTheMushroomChoosesAnOpenCellAwayFromTheDwarf(t *testing.T) {
+	for seed := range uint64(50) {
+		w := quietWorld(t)
+		w.rng = rand.New(rand.NewPCG(seed, 2))
+		ev := run(w, None, 1)
+		m := w.Mushroom
+		if !m.Showing || !slices.Contains(ev, MushroomAppeared) {
+			t.Fatalf("seed %d: mushroom %+v, events %v", seed, m, ev)
+		}
+		dx, dy := w.Dwarf.cell()
+		if w.Earth(m.X, m.Y) || abs(m.X-dx)+abs(m.Y-dy) < config.PickupMinCells {
+			t.Errorf("seed %d: at (%d, %d), dwarf (%d, %d)", seed, m.X, m.Y, dx, dy)
+		}
+	}
+}
+
+func TestAPickupAvoidsSacksKoboldsGoldAndTheEntrance(t *testing.T) {
+	w := quietWorld(t)
+	y := 0
+	w.Sacks = []Sack{{X: 5 * cell, Y: y}}
+	w.Kobolds = []Kobold{{X: 7 * cell, Y: y}}
+	w.Gold = []Gold{{X: 9, Y: y}}
+	for _, x := range []int{5, 7, 9, w.level.spawnX} {
+		if ly := w.level.spawnY; x == w.level.spawnX && w.pickupFits(x, ly) {
+			t.Errorf("fits the entrance (%d, %d)", x, ly)
+		} else if x != w.level.spawnX && w.pickupFits(x, y) {
+			t.Errorf("fits (%d, %d)", x, y)
+		}
+	}
+	if !w.pickupFits(11, y) {
+		t.Error("doesn't fit a clear cell")
+	}
+}
+
+func TestAPickupWaitsForAnOpenCell(t *testing.T) {
+	w := quietWorld(t)
+	for i := range w.earth {
+		w.earth[i] = true
+	}
+	run(w, None, 3)
+	if w.Mushroom.Showing || w.Mushroom.done {
+		t.Fatalf("no open cell: %+v", w.Mushroom)
+	}
+	w.earth[12] = false
+	run(w, None, 1)
+	if m := w.Mushroom; !m.Showing || m.X != 12 || m.Y != 0 {
+		t.Errorf("once open: %+v", m)
+	}
+}
+
+func TestTheMushroomVanishesOnTimeAndNeverReturns(t *testing.T) {
+	w := quietWorld(t)
+	run(w, None, config.MushroomShowTicks-1)
+	if !w.Mushroom.Showing {
+		t.Fatal("gone too soon")
+	}
+	run(w, None, 1)
+	if w.Mushroom.Showing {
+		t.Fatal("still showing after its time")
+	}
+	if ev := run(w, None, config.MushroomDelayMaxTicks); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
+		t.Errorf("came back: %+v", w.Mushroom)
+	}
+}
+
+func TestADeathLosesAShowingMushroomButNotOneToCome(t *testing.T) {
+	w := quietWorld(t)
+	run(w, None, 1)
+	w.catchDwarf()
+	w.Respawn()
+	if ev := run(w, None, config.MushroomDelayMaxTicks); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
+		t.Errorf("came back: %+v", w.Mushroom)
+	}
+
+	w = quietWorld(t)
+	w.Mushroom.wait = 10
+	run(w, None, 4)
+	w.catchDwarf()
+	w.Respawn()
+	if w.Mushroom.wait != 6 {
+		t.Errorf("wait %d after the death", w.Mushroom.wait)
+	}
+	run(w, None, 7)
+	if !w.Mushroom.Showing {
+		t.Errorf("didn't come: %+v", w.Mushroom)
+	}
+}
+
+func TestTheMushroomIsTheSameForTheSameSeed(t *testing.T) {
+	place := func() Pickup {
+		w := quietWorld(t)
+		w.rng = rand.New(rand.NewPCG(7, 7))
+		run(w, None, 1)
+		return w.Mushroom
+	}
+	if a, b := place(), place(); a != b {
+		t.Errorf("%+v then %+v", a, b)
 	}
 }
 
 func TestTakingTheMushroomScoresAndStartsTheChase(t *testing.T) {
 	w, s := chaseWorld(t)
-	w.Mushroom, w.mushroomDone = true, true
+	w.Mushroom = Pickup{X: 3, Y: 0, Showing: true, Ticks: 100}
 	w.Spawned = 1
-	w.Dwarf.X, w.Dwarf.Y = config.MushroomCol*cell, config.MushroomRow*cell
+	w.Dwarf.X, w.Dwarf.Y = 3*cell, 0
 	ev := run(w, None, 1)
-	if w.Mushroom || w.Chase != w.Tuning.ChaseTicks || s.Score != config.MushroomPoints || !slices.Contains(ev, MushroomTaken) {
-		t.Errorf("mushroom %v, chase %d, score %d, events %v", w.Mushroom, w.Chase, s.Score, ev)
+	if w.Mushroom.Showing || w.Chase != w.Tuning.ChaseTicks || s.Score != config.MushroomPoints || !slices.Contains(ev, MushroomTaken) {
+		t.Errorf("mushroom %+v, chase %d, score %d, events %v", w.Mushroom, w.Chase, s.Score, ev)
 	}
 	ev = run(w, None, w.Tuning.ChaseTicks)
 	if w.Chase != 0 || !slices.Contains(ev, ChaseOver) {
@@ -371,16 +509,12 @@ func TestKoboldsFleeAndNoneEnterInAChase(t *testing.T) {
 	}
 }
 
-func TestADeathEndsTheChaseAndTheMushroomReturns(t *testing.T) {
+func TestADeathEndsTheChase(t *testing.T) {
 	w, _ := chaseWorld(t)
-	w.mushroomDone, w.Chase = true, 1000
+	w.Chase = 1000
 	w.catchDwarf()
 	if w.Chase != 0 {
 		t.Errorf("chase %d after dying", w.Chase)
-	}
-	w.Respawn()
-	if w.mushroomDone || w.Mushroom {
-		t.Errorf("after respawn: done %v, showing %v", w.mushroomDone, w.Mushroom)
 	}
 }
 
