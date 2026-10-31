@@ -54,6 +54,29 @@ func run(w *World, dir Dir, ticks int) []Event {
 	return all
 }
 
+func TestThereAreEightLayouts(t *testing.T) {
+	if len(config.Levels) != 8 {
+		t.Errorf("%d layouts, want 8 (DESIGN D9)", len(config.Levels))
+	}
+}
+
+// TestGoblinsCanReachTheDwarfInEveryLevel walks the open tunnels from the
+// entrance, as a goblin that isn't digging would.
+func TestGoblinsCanReachTheDwarfInEveryLevel(t *testing.T) {
+	for i, rows := range config.Levels {
+		l, err := Parse(rows)
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := session.New(config.Skills[0], config.StartLives)
+		w := New(s, l, config.BaseTuning, rand.New(rand.NewPCG(1, 2)))
+		w.measure(false)
+		if d := w.dist[l.spawnY*config.FieldCols+l.spawnX]; d < 0 {
+			t.Errorf("level %d: no tunnel from the entrance to the dwarf:\n%v", i+1, w)
+		}
+	}
+}
+
 func TestEveryLevelParses(t *testing.T) {
 	for i, rows := range config.Levels {
 		if _, err := Parse(rows); err != nil {

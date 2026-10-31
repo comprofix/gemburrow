@@ -170,6 +170,36 @@ func TestGoldenSackDrop(t *testing.T) {
 	scenetest.Golden(t, "sackdrop", summary(h, p))
 }
 
+// TestAGameRunsThroughEveryLevelAtEachSkill goes on past the last layout,
+// checking each level's layout and tuning.
+func TestAGameRunsThroughEveryLevelAtEachSkill(t *testing.T) {
+	for _, skill := range config.Skills {
+		h := scenetest.New(t, 42)
+		h.Ctx.NewPlay = New
+		h.Ctx.Input = input.New(h.Script, Bindings...)
+		p := New(h.Ctx, skill).(*Play)
+		h.Start(p)
+		h.Ticks(scene.FadeTicks)
+		for level := 1; level <= len(config.Levels)+config.RampLevels; level++ {
+			if p.Level() != level {
+				t.Fatalf("%s: on level %d, want %d", skill.ID, p.Level(), level)
+			}
+			if got, want := p.World().Tuning, config.TuningFor(skill, level); got != want {
+				t.Errorf("%s level %d: tuning %+v, want %+v", skill.ID, level, got, want)
+			}
+			l, err := world.Parse(config.LevelFor(level))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := world.New(h.Ctx.Session, l, p.World().Tuning, h.Ctx.RNG); want.String() != p.World().String() {
+				t.Errorf("%s level %d: wrong layout:\n%v", skill.ID, level, p.World())
+			}
+			p.World().JewelsLeft = 0
+			h.Ticks(config.LevelClearTicks + 2)
+		}
+	}
+}
+
 // TestGoldenSackPush pushes a sack of the first level over a jewel, which it
 // leaves in place for the dwarf to take, and on through the earth.
 func TestGoldenSackPush(t *testing.T) {
