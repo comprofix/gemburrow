@@ -40,6 +40,8 @@ type Content struct {
 	NewPlay func(ctx *scene.Context, skill config.Skill) scene.Scene
 	// NewDemo, if set, runs behind the title (see scene.Context).
 	NewDemo func(ctx *scene.Context) scene.Scene
+	// TitleArt, if set, draws the game's art on the title (see scene.Context).
+	TitleArt func(ctx *scene.Context, dst *ebiten.Image, ticks int64)
 	// NativePlay says the play and demo scenes draw in either look (see
 	// scene.Context).
 	NativePlay bool
@@ -106,6 +108,7 @@ func New(seed uint64, saved Saved, synth *audio.Synth) (*Game, error) {
 		Sheets:     sheets,
 		NewPlay:    content.NewPlay,
 		NewDemo:    content.NewDemo,
+		TitleArt:   content.TitleArt,
 		NativePlay: content.NativePlay,
 		Audio:      synth,
 		Sounds:     audio.Join(scene.Sounds, content.Sounds),

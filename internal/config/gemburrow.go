@@ -65,6 +65,22 @@ const (
 	GoldDugUnderTicks = 4 * TPS / 5
 	GoldPoints        = 500
 
+	// The title screen (DESIGN §7), in the pixel screen's coordinates. The logo
+	// is letters of blocks, over a cavern of TitleRows cells with a tunnel in it.
+	// The characters walk it in TitlePassTicks each way, which is long enough for
+	// the last of them to leave the screen.
+	TitleLetterCols   = 5
+	TitleLetterRows   = 7
+	TitleBlockPixels  = 8
+	TitleShadowPixels = 2
+	TitleLogoY        = 26
+	TitleSceneY       = 104
+	TitleRows         = 5
+	TitleTunnelRow    = 2
+	TitlePromptY      = 284
+	TitleWalkPixels   = 1
+	TitleGapPixels    = 52
+	TitlePassTicks    = 840
 	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears in
 	// the field's top-right cell. Goblins eaten in a chase score EatPoints, then
 	// double each.

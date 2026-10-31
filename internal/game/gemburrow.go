@@ -12,6 +12,7 @@ func init() {
 
 		TitleTune:  play.TitleTune,
 		ScoresTune: play.ScoresTune,
+		TitleArt:   play.DrawTitle,
 
 		NativePlay: true,
 	}

@@ -154,6 +154,10 @@ type Context struct {
 	// NewDemo, if set, starts the game playing itself, which the title
 	// shows behind its logo.
 	NewDemo func(ctx *Context) Scene
+	// TitleArt, if set, draws the game's own art on the title screen in place
+	// of its plain name, at the size of dst, ticks after the title started. It
+	// must only read.
+	TitleArt func(ctx *Context, dst *ebiten.Image, ticks int64)
 	// NativePlay says the scenes NewPlay and NewDemo make are Native, drawn
 	// for the smooth look as well as the pixel one. Until then a game with
 	// two looks leaves it false and they are made in the pixel look.

@@ -12,8 +12,8 @@ import (
 const BlinkTicks = config.TPS
 
 // Title is the title screen: the game's name and a blinking prompt, over
-// the game playing itself if it has a demo (Context.NewDemo). Any key or
-// button goes to the main menu.
+// the game playing itself if it has a demo (Context.NewDemo), or the game's own
+// art (Context.TitleArt). Any key or button goes to the main menu.
 type Title struct {
 	shown int64 // ticks since the scene started, for the blink
 	demo  Scene // nil until the first update, or if the game has none
@@ -66,7 +66,12 @@ func (t *Title) Draw(ctx *Context, dst *ebiten.Image) {
 		dst.Fill(gfx.RGBA(sc.Backdrop))
 	}
 
-	ui.TextCentred(dst, f.Large, config.Title, y, sc.Title, sc.Shadow)
+	if ctx.TitleArt != nil {
+		ctx.TitleArt(ctx, dst, t.shown)
+		py = h * config.TitlePromptY / config.Modern.ScreenHeight
+	} else {
+		ui.TextCentred(dst, f.Large, config.Title, y, sc.Title, sc.Shadow)
+	}
 	if ui.Blink(t.shown, BlinkTicks) {
 		ui.TextCentred(dst, f.Small, "PRESS ANY KEY", py, sc.Text, sc.Shadow)
 	}
