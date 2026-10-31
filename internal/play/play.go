@@ -56,6 +56,7 @@ func New(ctx *scene.Context, skill config.Skill) scene.Scene {
 	ctx.Session = session.New(skill, config.StartLives)
 	p := &Play{level: max(ctx.StartLevel, 1)}
 	p.world = loadLevel(ctx, p.level)
+	ctx.Audio.PlayTune(DiggingTune)
 	return p
 }
 

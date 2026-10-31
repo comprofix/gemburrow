@@ -9,5 +9,8 @@ func init() {
 		Sounds:   play.Sounds,
 		Sheets:   []string{"gemburrow"},
 		Bindings: play.Bindings,
+
+		TitleTune:  play.TitleTune,
+		ScoresTune: play.ScoresTune,
 	}
 }

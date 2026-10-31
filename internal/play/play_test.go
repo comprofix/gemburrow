@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -168,6 +169,26 @@ func TestGoldenSackDrop(t *testing.T) {
 		t.Errorf("score %d", h.Ctx.Session.Score)
 	}
 	scenetest.Golden(t, "sackdrop", summary(h, p))
+}
+
+func TestLoopingTunesKeepTheirPartsInStep(t *testing.T) {
+	for _, tune := range Sounds.Tunes {
+		if !tune.Loop {
+			continue
+		}
+		var first time.Duration
+		for i, part := range tune.Parts {
+			var sum time.Duration
+			for _, n := range part.Notes {
+				sum += n.Dur
+			}
+			if i == 0 {
+				first = sum
+			} else if d := sum - first; d > time.Millisecond || d < -time.Millisecond {
+				t.Errorf("%s: part %d lasts %v, part 0 %v", tune.Name, i, sum, first)
+			}
+		}
+	}
 }
 
 // TestAGameRunsThroughEveryLevelAtEachSkill goes on past the last layout,

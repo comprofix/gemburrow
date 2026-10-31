@@ -2,8 +2,8 @@ package play
 
 import "github.com/comprofix/gemburrow/internal/audio"
 
-// Placeholder sounds, replaced with the game's own later. Channels follow the
-// shared layout: 0 lead, 1 harmony, 2 bass, 3 noise.
+// The game's sound effects. Channels follow the shared layout: 0 lead,
+// 1 harmony, 2 bass, 3 noise.
 var (
 	// Dig is a cell of earth dug.
 	Dig = &audio.Effect{Name: "dig", Channel: 3, Priority: 1, Part: audio.Part{
@@ -64,6 +64,6 @@ var (
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Effects: []*audio.Effect{
+var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ScoresTune}, Effects: []*audio.Effect{
 	Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
 }}
