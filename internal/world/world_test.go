@@ -251,3 +251,94 @@ func TestTheDwarfDigsOnlyWhileCuttingIntoEarth(t *testing.T) {
 		t.Error("still digging once stopped")
 	}
 }
+
+// takeJewels has the dwarf take n jewels, waiting the given ticks before each.
+func takeJewels(w *World, n, wait int) []Event {
+	var last []Event
+	for range n {
+		run(w, None, wait)
+		w.jewels[0] = true
+		w.JewelsLeft++
+		w.enter(0, 0)
+		last = w.events
+	}
+	return last
+}
+
+func TestEightJewelsInARowScoreABonus(t *testing.T) {
+	w, s := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
+	w.events = w.events[:0]
+	takeJewels(w, config.JewelRunCount-1, 1)
+	if want := (config.JewelRunCount - 1) * config.JewelPoints; s.Score != want {
+		t.Fatalf("score %d before the run was complete, want %d", s.Score, want)
+	}
+	ev := takeJewels(w, 1, config.JewelRunTicks-1)
+	if want := config.JewelRunCount*config.JewelPoints + config.JewelRunPoints; s.Score != want || !slices.Contains(ev, JewelRun) {
+		t.Errorf("score %d, want %d, events %v", s.Score, want, ev)
+	}
+	// The next run starts again from nothing.
+	takeJewels(w, config.JewelRunCount-1, 1)
+	if want := (2*config.JewelRunCount-1)*config.JewelPoints + config.JewelRunPoints; s.Score != want {
+		t.Errorf("score %d in the next run, want %d", s.Score, want)
+	}
+}
+
+func TestAPauseBreaksAJewelRun(t *testing.T) {
+	w, s := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
+	takeJewels(w, config.JewelRunCount-1, 1)
+	takeJewels(w, 1, config.JewelRunTicks)
+	if want := config.JewelRunCount * config.JewelPoints; s.Score != want {
+		t.Errorf("score %d, want %d", s.Score, want)
+	}
+}
+
+func TestDyingBreaksAJewelRun(t *testing.T) {
+	w, s := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
+	takeJewels(w, config.JewelRunCount-1, 1)
+	w.catchDwarf()
+	w.Respawn()
+	takeJewels(w, 1, 1)
+	if want := config.JewelRunCount * config.JewelPoints; s.Score != want {
+		t.Errorf("score %d, want %d", s.Score, want)
+	}
+}
+
+// Every layout should offer a run: eight jewels, each near enough the last to
+// reach in time.
+func TestEveryLevelHasARunOfJewels(t *testing.T) {
+	reach := config.JewelRunTicks * config.DwarfSpeed / config.CellSize
+	for n, rows := range config.Levels {
+		l, err := Parse(rows)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var jewels [][2]int
+		for i, j := range l.jewels {
+			if j {
+				jewels = append(jewels, [2]int{i % config.FieldCols, i / config.FieldCols})
+			}
+		}
+		used := make([]bool, len(jewels))
+		var longest func(from, length int) bool
+		longest = func(from, length int) bool {
+			if length == config.JewelRunCount {
+				return true
+			}
+			used[from] = true
+			defer func() { used[from] = false }()
+			for to, j := range jewels {
+				if !used[to] && abs(j[0]-jewels[from][0])+abs(j[1]-jewels[from][1]) <= reach && longest(to, length+1) {
+					return true
+				}
+			}
+			return false
+		}
+		found := false
+		for from := range jewels {
+			found = found || longest(from, 1)
+		}
+		if !found {
+			t.Errorf("level %d has no run of %d jewels within %d cells of each other", n+1, config.JewelRunCount, reach)
+		}
+	}
+}

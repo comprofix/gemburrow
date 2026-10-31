@@ -15,6 +15,11 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(8), Sustain: 0.4, Release: audio.Ticks(3), Volume: 0.8},
 		Notes: audio.Notes("E6:3 B6:8"),
 	}}
+	// JewelRun is a run of jewels completed.
+	JewelRun = &audio.Effect{Name: "jewel run", Channel: 1, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(8), Sustain: 0.4, Release: audio.Ticks(3), Volume: 0.8},
+		Notes: audio.Notes("E6:3 G6:3 B6:3 E7:10"),
+	}}
 	// LevelClear is the last jewel of a level collected.
 	LevelClear = &audio.Effect{Name: "level clear", Channel: 0, Priority: 5, Part: audio.Part{
 		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(16), Sustain: 0.5, Release: audio.Ticks(8), Volume: 0.8},
@@ -80,6 +85,6 @@ var (
 
 // Sounds are the game's sounds, for the sound test.
 var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ChaseTune, ScoresTune}, Effects: []*audio.Effect{
-	Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
+	Dig, Jewel, JewelRun, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
 	MushroomUp, MushroomTaken, GoblinEaten,
 }}

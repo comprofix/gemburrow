@@ -65,6 +65,7 @@ type Event int
 const (
 	Dug Event = iota
 	JewelTaken
+	JewelRun
 	LevelCleared
 	ShotFired
 	GoblinShot
@@ -221,6 +222,8 @@ type World struct {
 	spawnWait    int
 	pressed      Dir // the direction pushed this tick, for holding up a sack
 	cleared      bool
+	jewelRun     int  // jewels taken in the current run
+	jewelRunWait int  // ticks left to take the next one
 	mushroomDone bool // the level's one mushroom has appeared
 	eatPoints    int  // what the next goblin eaten scores
 	events       []Event
@@ -273,6 +276,7 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 	if w.cleared || w.Caught {
 		return w.events
 	}
+	w.jewelRunWait = max(w.jewelRunWait-1, 0)
 	w.moveDwarf(dir)
 	w.Recharge = max(w.Recharge-1, 0)
 	if fire && w.Recharge == 0 {
@@ -376,6 +380,22 @@ func (w *World) enter(x, y int) {
 		w.JewelsTaken++
 		w.addScore(config.JewelPoints)
 		w.events = append(w.events, JewelTaken)
+		w.countJewelRun()
+	}
+}
+
+// countJewelRun extends the run of jewels, or starts a new one if the last was
+// too long ago, and scores a run once it is long enough (DESIGN §5).
+func (w *World) countJewelRun() {
+	if w.jewelRunWait == 0 {
+		w.jewelRun = 0
+	}
+	w.jewelRun++
+	w.jewelRunWait = config.JewelRunTicks
+	if w.jewelRun == config.JewelRunCount {
+		w.jewelRun = 0
+		w.addScore(config.JewelRunPoints)
+		w.events = append(w.events, JewelRun)
 	}
 }
 
@@ -1002,6 +1022,7 @@ func (w *World) Respawn() {
 	w.Shot = nil
 	w.Recharge = 0
 	w.Caught = false
+	w.jewelRun, w.jewelRunWait = 0, 0
 	w.Mushroom, w.mushroomDone = false, false
 	w.spawnWait = w.Tuning.GoblinSpawnTicks
 	w.placeDwarf()

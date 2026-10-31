@@ -19,7 +19,12 @@ const (
 	// DwarfSpeed is in pixels per tick, and must divide CellSize.
 	DwarfSpeed  = 2
 	JewelPoints = 25
-	StartLives  = 3
+	// JewelRunCount jewels, each taken within JewelRunTicks of the last, score
+	// JewelRunPoints more (DESIGN §5). That is 9 of the original's ticks.
+	JewelRunCount  = 8
+	JewelRunPoints = 250
+	JewelRunTicks  = 9 * TPS * 2 / 25
+	StartLives     = 3
 	// LevelClearTicks is how long the level clear banner stays up.
 	LevelClearTicks = 2 * TPS
 

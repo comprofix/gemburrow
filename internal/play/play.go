@@ -121,6 +121,8 @@ func (p *Play) Update(ctx *scene.Context) error {
 			ctx.Audio.PlayEffect(Dig)
 		case world.JewelTaken:
 			ctx.Audio.PlayEffect(Jewel)
+		case world.JewelRun:
+			ctx.Audio.PlayEffect(JewelRun)
 		case world.LevelCleared:
 			ctx.Audio.PlayEffect(LevelClear)
 			p.clear = config.LevelClearTicks
