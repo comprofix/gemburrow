@@ -231,12 +231,30 @@ func drawSack(n pen) {
 	n.rect(13.4, 22.8, 5.2, 1.6, 0.6, resurrect64.Rust)
 }
 
+// drawGold is a heap of rough nuggets, each a lump of uneven facets.
 func drawGold(n pen) {
-	for _, c := range [...][3]float64{{8, 25, 4}, {16, 25, 4.5}, {24, 25, 4}, {12, 19, 4}, {20, 19, 4}, {16, 13, 3.5}} {
-		n.circle(c[0], c[1], c[2], resurrect64.Amber)
-		n.circle(c[0]-0.5, c[1]-0.5, c[2]-1.2, resurrect64.Gold)
+	nugget := func(dx, dy, r float64) {
+		p := func(x, y float64) (float64, float64) { return dx + x*r, dy + y*r }
+		x0, y0 := p(-1, 0.2)
+		x1, y1 := p(-0.55, -0.75)
+		x2, y2 := p(0.25, -1)
+		x3, y3 := p(1, -0.25)
+		x4, y4 := p(0.7, 0.8)
+		x5, y5 := p(-0.45, 0.9)
+		mx, my := p(-0.1, -0.1)
+		n.poly(resurrect64.Amber, x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5)
+		n.poly(resurrect64.Gold, x0, y0, x1, y1, x2, y2, mx, my)
+		n.poly(resurrect64.Lemon, x1, y1, x2, y2, mx, my)
+		n.poly(resurrect64.Orange, mx, my, x4, y4, x5, y5)
 	}
-	n.circle(14, 11.5, 0.9, resurrect64.White)
+	nugget(16, 12, 5.5)
+	nugget(9, 18, 6)
+	nugget(23, 18.5, 6)
+	nugget(5, 26, 4.5)
+	nugget(15.5, 25, 6.5)
+	nugget(26.5, 26, 4.5)
+	n.circle(14, 8.5, 0.9, resurrect64.White)
+	n.circle(21, 15, 0.8, resurrect64.White)
 }
 
 func drawDwarf(n pen, frame int) {
