@@ -323,51 +323,188 @@ func drawDwarf(n pen, frame, pick int) {
 	}
 }
 
-func drawKobold(n pen, frame int, afraid bool) {
-	skin, shade, cloth := resurrect64.Emerald, resurrect64.Forest, resurrect64.Grape
+type tones struct{ deep, shade, skin, hi, cloth, clothS, clothH, eye int }
+
+func koboldTones(afraid bool) tones {
 	if afraid {
-		skin, shade, cloth = resurrect64.Lavender, resurrect64.Violet, resurrect64.Grape
+		return tones{resurrect64.Grape, resurrect64.Violet, resurrect64.Lavender, resurrect64.Orchid, resurrect64.Blush, resurrect64.Mauve, resurrect64.White, resurrect64.White}
 	}
-	step := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
-	n.rect(9+step, 26, 6, 4, 1.5, shade)
-	n.rect(17-step, 26, 6, 4, 1.5, shade)
-	n.rect(10, 18, 12, 10, 3, cloth)
-	n.poly(skin, 9, 12, 1, 5, 11, 7)
-	n.poly(skin, 23, 12, 31, 5, 21, 7)
-	n.circle(16, 12, 8, skin)
-	n.circle(13, 11, 2.2, resurrect64.Lemon)
-	n.circle(19, 11, 2.2, resurrect64.Lemon)
-	n.circle(14, 11, 1, resurrect64.Ink)
-	n.circle(20, 11, 1, resurrect64.Ink)
-	n.line(12, 16, 20, 16, 1.2, resurrect64.Ink)
+	return tones{resurrect64.Maroon, resurrect64.Brick, resurrect64.Vermilion, resurrect64.Coral, resurrect64.Honey, resurrect64.Caramel, resurrect64.Blush, resurrect64.Gold}
 }
 
-// drawGoblin is a kobold swollen into a goblin (DESIGN D8): a hulking stony
-// brute that fills its cell, with a heavy brow, tusks and huge clawed hands.
-func drawGoblin(n pen, frame int, afraid bool) {
-	skin, shade, belly := resurrect64.Slate, resurrect64.Charcoal, resurrect64.Sage
+func goblinTones(afraid bool) tones {
 	if afraid {
-		skin, shade, belly = resurrect64.Lavender, resurrect64.Violet, resurrect64.White
+		return tones{resurrect64.Grape, resurrect64.Violet, resurrect64.Lavender, resurrect64.Orchid, resurrect64.Plum, resurrect64.Shadow, resurrect64.Mauve, resurrect64.White}
 	}
+	return tones{resurrect64.Pine, resurrect64.Forest, resurrect64.Emerald, resurrect64.Leaf, resurrect64.Grape, resurrect64.Plum, resurrect64.Violet, resurrect64.Lemon}
+}
+
+// drawKobold: a small, hunched lizard-dog with a long snout, swept-back horns
+// and a tail. It stands well short of the cell, so growing is obvious.
+func drawKobold(n pen, frame int, afraid bool) {
+	t := koboldTones(afraid)
+	step := 1.2 * math.Copysign(1, float64(frame%2)-0.5)
+
+	// Tail, tapering behind it, with a flick.
+	n.poly(t.deep, 12, 22, 12, 28.5, 6, 28, 1.5, 24.5, 5.5, 25.5)
+	n.poly(t.shade, 12, 23, 12, 27, 6.5, 26.8, 3.5, 25, 6, 25.2)
+
+	// Far leg, then near leg, with pale claws.
+	n.rect(16-step, 26, 5, 5, 1.5, t.deep)
+	n.rect(10+step, 25.5, 6, 5.5, 2, t.shade)
+	n.rect(10+step, 28.8, 7.5, 2.2, 1, t.deep)
+	for _, x := range [...]float64{15, 16.6} {
+		n.poly(resurrect64.Mist, x+step, 29, x+1.5+step, 31, x+step, 31)
+	}
+
+	// Body, hunched: dark rim, scales, pale belly.
+	n.rect(9, 17, 14, 11, 5.5, t.deep)
+	n.rect(9.5, 17, 12.5, 9.8, 5, t.shade)
+	n.rect(10, 17, 10, 7, 4, t.skin)
+	n.rect(17, 19.5, 5.5, 8, 2.6, t.clothS)
+	n.rect(18, 20, 4, 6.6, 2, t.cloth)
+	n.line(18.2, 22, 22, 22, 0.5, t.clothS)
+	n.line(18.2, 24.2, 22, 24.2, 0.5, t.clothS)
+
+	// Spines down its back.
+	for _, s := range [...][2]float64{{11.5, 16}, {9.8, 18.8}, {9, 22}} {
+		n.poly(t.deep, s[0]-1.4, s[1]+1.2, s[0]-2.2, s[1]-1.2, s[0]+1.4, s[1]-0.4)
+	}
+	// A few scales.
+	for _, s := range [...][2]float64{{13, 19.5}, {15.5, 21}, {12.5, 22.5}} {
+		n.circle(s[0], s[1], 0.8, t.shade)
+	}
+
+	// Horns swept back, behind the head.
+	n.poly(resurrect64.Sand, 15, 9, 5.5, 3.5, 13, 12)
+	n.poly(resurrect64.Clay, 15, 10.5, 6.5, 4.2, 13, 12)
+	n.poly(resurrect64.Clay, 18, 7.5, 10, 2, 16, 8.5)
+
+	// Head with a long snout, lower jaw under it.
+	n.poly(t.deep, 16, 15, 28, 15.2, 27, 18.5, 18, 19.5)
+	n.circle(18, 11.5, 6.2, t.shade)
+	n.poly(t.shade, 19, 6.5, 29, 10.5, 30.5, 13, 29, 15.5, 16, 16.5)
+	n.circle(17.5, 11, 5.4, t.skin)
+	n.poly(t.skin, 19, 6.8, 28, 10.8, 29.2, 12.6, 27.8, 14.2, 17, 14.6)
+	n.circle(16.5, 8.5, 1.6, t.hi)
+	n.line(21, 8.6, 27, 11, 0.9, t.hi)
+	n.circle(27.6, 12, 0.7, t.deep)
+
+	// Teeth, along the jaw.
+	for _, x := range [...]float64{19, 22, 25} {
+		n.poly(resurrect64.White, x, 15, x+1.8, 15, x+0.9, 17.4)
+	}
+
+	// Eye: bright with a slit, and a scowl above it.
+	if afraid {
+		n.circle(20, 10.8, 2.6, t.eye)
+		n.circle(20.8, 10.8, 0.8, resurrect64.Ink)
+	} else {
+		n.circle(20, 11, 2.1, t.eye)
+		n.rect(20.2, 9.3, 0.9, 3.4, 0.4, resurrect64.Ink)
+		n.poly(t.deep, 17, 7.8, 23.5, 9.8, 23, 11, 17.5, 9.6)
+	}
+
+	// Little arm with claws.
+	n.rect(19.5, 19, 4, 5.5, 2, t.shade)
+	n.circle(23.3, 24.3, 1.9, t.skin)
+	for _, a := range [...]float64{0, 1.5} {
+		n.poly(resurrect64.Mist, 24+a*0.6, 25, 25.2+a*0.6, 25, 25.4+a*0.8, 27.4)
+	}
+}
+
+// drawGoblin is the present goblin grown up: same green skin, yellow eyes,
+// purple tunic and pointed ears, but shaded, hunched, and carrying the mattock
+// that says it can dig through earth.
+func drawGoblin(n pen, frame int, afraid bool) {
+	t := goblinTones(afraid)
 	step := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
-	n.rect(7+step, 26, 8, 5, 2, shade)
-	n.rect(17-step, 26, 8, 5, 2, shade)
-	n.rect(4, 13, 24, 15, 5, skin)
-	n.rect(10, 18, 12, 8, 3, belly)
-	n.rect(0.5, 14, 6.5, 13, 3, skin)
-	n.rect(25, 14, 6.5, 13, 3, skin)
-	n.circle(3.5, 27, 3.8, shade)
-	n.circle(28.5, 27, 3.8, shade)
-	for _, x := range [...]float64{1, 4, 25.5, 28.5} {
-		n.poly(resurrect64.White, x, 29, x+2.5, 29, x+1.2, 32)
+
+	// Mattock, behind everything but the hand.
+	if !afraid {
+		n.line(29, 30.5, 29, 3, 1.7, resurrect64.Bark)
+		n.line(29.5, 30, 29.5, 3, 0.6, resurrect64.Clay)
+		n.poly(resurrect64.Dusk, 23.5, 7, 28, 1.2, 32, 1.2, 32, 4.5, 28, 5)
+		n.poly(resurrect64.Fog, 24.5, 5.6, 28.3, 1.6, 31.6, 1.6, 31.6, 2.8, 28, 3.4)
 	}
-	n.circle(16, 9.5, 9, skin)
-	n.poly(shade, 8, 6, 15, 8.5, 17, 8.5, 24, 6, 24, 9, 17, 11, 15, 11, 8, 9)
-	n.circle(12, 11.5, 1.6, resurrect64.Coral)
-	n.circle(20, 11.5, 1.6, resurrect64.Coral)
-	n.rect(10.5, 14.5, 11, 2.5, 1, shade)
-	n.poly(resurrect64.White, 11, 16.5, 13.5, 16.5, 12, 12.5)
-	n.poly(resurrect64.White, 18.5, 16.5, 21, 16.5, 20, 12.5)
+
+	// Far ear and far arm, in shade.
+	n.poly(t.deep, 22.5, 6, 27.5, 3, 25, 10)
+	n.rect(3.5, 16.5, 5.5, 9, 2.6, t.shade)
+	n.circle(5.5, 25.5, 2.8, t.deep)
+	for _, x := range [...]float64{2.8, 5, 7.2} {
+		n.poly(resurrect64.Mist, x-0.9, 26.8, x+0.9, 26.8, x, 29.4)
+	}
+
+	// Legs and boots.
+	n.rect(10+step, 24, 6, 5, 1.6, t.clothS)
+	n.rect(18-step, 24, 6, 5, 1.6, t.clothS)
+	n.rect(8.5+step, 27.5, 8.5, 3.8, 1.5, t.deep)
+	n.rect(17-step, 27.5, 8.5, 3.8, 1.5, t.deep)
+	n.rect(9.5+step, 27.8, 5, 1, 0.5, t.shade)
+	n.rect(18-step, 27.8, 5, 1, 0.5, t.shade)
+
+	// Tunic: shaded, patched, ragged hem.
+	n.rect(7.5, 15, 18.5, 12, 5, t.clothS)
+	n.rect(7.5, 15, 16.5, 10.5, 5, t.cloth)
+	n.line(10.6, 17.5, 10.6, 22, 1.4, t.clothH)
+	n.poly(t.clothS, 9, 25, 12, 25, 10.5, 28.5)
+	n.poly(t.clothS, 14, 25, 18, 25, 16, 29)
+	n.poly(t.clothS, 20, 25, 24, 25, 22.5, 28)
+	n.rect(16.5, 17.5, 4, 3.4, 0.5, t.clothS)
+	n.rect(7.5, 22.8, 18.5, 2, 0.8, resurrect64.Clay)
+	n.rect(7.5, 22.8, 18.5, 1, 0.5, resurrect64.Sand)
+	n.rect(14, 22.3, 3, 3, 0.6, resurrect64.Fog)
+
+	// Hunched shoulders.
+	n.circle(10.5, 16.5, 3.6, t.shade)
+	n.circle(23, 16.5, 3.6, t.shade)
+
+	// Near ear, long and swept back.
+	n.poly(t.deep, 11, 6.5, 0.5, 1.5, 3.2, 10.5, 11, 13.5)
+	n.poly(t.skin, 11, 7.5, 2.2, 3, 4.2, 9.8, 11, 12.2)
+	n.poly(t.deep, 10.5, 8.8, 5, 5.5, 6, 9.2, 10.5, 11)
+	n.line(3.2, 3.8, 7, 5.8, 0.8, t.hi)
+
+	// Head: dark edge, skin, highlight.
+	n.circle(17.5, 10.2, 8.4, t.deep)
+	n.circle(17.3, 9.8, 7.8, t.shade)
+	n.circle(16.8, 9, 7.1, t.skin)
+	n.line(12.5, 5.5, 16, 3.6, 1.5, t.hi)
+
+	// Eyes.
+	if afraid {
+		n.circle(15, 8.8, 2.8, t.eye)
+		n.circle(21.4, 8.8, 2.4, t.eye)
+		n.circle(15.8, 9, 0.9, resurrect64.Ink)
+		n.circle(22.1, 9, 0.9, resurrect64.Ink)
+	} else {
+		n.circle(15, 9.2, 2.4, t.eye)
+		n.circle(21.4, 9.2, 2.1, t.eye)
+		n.circle(15.9, 9.4, 1.1, resurrect64.Ink)
+		n.circle(22.2, 9.4, 1, resurrect64.Ink)
+		n.poly(t.deep, 11.8, 5.6, 18.2, 8, 24.4, 5.6, 24.4, 7, 18.2, 9.3, 11.8, 7)
+	}
+
+	// Mouth with a jutting tusk, under the hooked nose.
+	if afraid {
+		n.rect(12.5, 15.5, 9, 3, 1.4, resurrect64.Ink)
+	} else {
+		n.poly(resurrect64.Ink, 10.5, 15.6, 22.5, 15.6, 21, 18.2, 12, 18.2)
+	}
+	n.poly(resurrect64.White, 12.3, 18.2, 15.2, 18.2, 13.7, 14.2)
+
+	// Hooked nose.
+	n.poly(t.deep, 18, 11.8, 26.5, 12.6, 29, 16.6, 26, 17, 19.5, 15.4)
+	n.poly(t.skin, 18, 11.4, 25.8, 12.2, 27.8, 15.2, 25.2, 15.3, 19.5, 14.2)
+	n.line(20, 12.6, 25, 13.2, 0.8, t.hi)
+
+	// Near arm and hand, gripping the mattock.
+	n.rect(22.5, 16, 5.5, 8, 2.5, t.shade)
+	n.rect(22.5, 16, 4.5, 6.5, 2, t.skin)
+	n.circle(28, 23, 3, t.skin)
+	n.circle(28.5, 23.8, 2.1, t.shade)
+	n.rect(26.8, 21.6, 3.6, 1, 0.5, t.hi)
 }
 
 // drawMushroom is the bonus: a glowing cap on a pale stem, its glow pulsing.
