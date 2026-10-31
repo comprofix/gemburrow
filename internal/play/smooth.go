@@ -400,6 +400,19 @@ func drawHeadstone(n pen) {
 	} {
 		n.rect(r[0], r[1], r[2], r[3], 0.3, resurrect64.Ink)
 	}
+	// Blades of grass: the far ones darker, then the near ones over the stone's foot.
+	for _, b := range [...][3]float64{{0.5, 21, -0.5}, {3, 23, 0.8}, {29, 23, -0.8}, {31.5, 21, 0.5}, {9, 26, -0.8}, {16, 26, 0.8}, {23, 26, -0.8}} {
+		drawBlade(n, b[0], b[1], b[2], resurrect64.Forest)
+	}
+	for _, b := range [...][3]float64{{1.5, 24, 1}, {5.5, 26, -1}, {12, 27.5, 1}, {19.5, 27.5, -1}, {26.5, 26, 1}, {30.5, 24, -1}} {
+		drawBlade(n, b[0], b[1], b[2], resurrect64.Emerald)
+	}
+}
+
+// drawBlade is a blade of grass growing from the foot of the cell at x, up to
+// height y, its tip leaning by lean.
+func drawBlade(n pen, x, y, lean float64, c int) {
+	n.poly(c, x-1.4, 32, x+1.4, 32, x+lean, y)
 }
 
 func drawShot(dst *ebiten.Image, x, y, r float64) {
