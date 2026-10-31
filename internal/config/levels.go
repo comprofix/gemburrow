@@ -6,12 +6,13 @@ const (
 	LevelTunnel = '=' // an open tunnel
 	LevelJewel  = '*' // a jewel set in earth
 	LevelDwarf  = 'D' // the dwarf's start, in an open tunnel
+	LevelSpawn  = 'G' // where goblins enter, in an open tunnel
 )
 
 // Levels are the original layouts, FieldRows rows of FieldCols characters.
 var Levels = [][]string{
 	{
-		"##*#####==#####*##",
+		"##*#####=G#####*##",
 		"#####*##==##*#####",
 		"##*#####==#####*##",
 		"#####*##==##*#####",

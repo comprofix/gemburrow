@@ -1,6 +1,7 @@
 package world
 
 import (
+	"math/rand/v2"
 	"slices"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ func layout(cells map[[2]int]byte) []string {
 		rows[y] = []byte(strings.Repeat(string(rune(config.LevelEarth)), config.FieldCols))
 	}
 	rows[config.FieldRows-1][config.FieldCols-1] = config.LevelJewel
+	rows[config.FieldRows-2][config.FieldCols-1] = config.LevelSpawn
 	for p, c := range cells {
 		rows[p[1]][p[0]] = c
 	}
@@ -39,13 +41,13 @@ func newWorld(t *testing.T, cells map[[2]int]byte) (*World, *session.Session) {
 		t.Fatal(err)
 	}
 	s := session.New(config.Skills[0], config.StartLives)
-	return New(s, l), s
+	return New(s, l, config.BaseTuning, rand.New(rand.NewPCG(1, 2))), s
 }
 
 func run(w *World, dir Dir, ticks int) []Event {
 	var all []Event
 	for range ticks {
-		all = append(all, w.Update(dir)...)
+		all = append(all, w.Update(dir, false)...)
 	}
 	return all
 }
@@ -71,6 +73,8 @@ func TestParseRejects(t *testing.T) {
 		"bad cell":     mutate(func(r []string) { r[1] = "?" + r[1][1:] }),
 		"no dwarf":     mutate(func(r []string) { r[0] = "#" + r[0][1:] }),
 		"two dwarves":  mutate(func(r []string) { r[1] = "D" + r[1][1:] }),
+		"no spawn":     mutate(func(r []string) { r[config.FieldRows-2] = r[0][1:] + "#" }),
+		"two spawns":   mutate(func(r []string) { r[1] = "G" + r[1][1:] }),
 		"no jewels": mutate(func(r []string) {
 			last := len(r) - 1
 			r[last] = r[last][:config.FieldCols-1] + "#"

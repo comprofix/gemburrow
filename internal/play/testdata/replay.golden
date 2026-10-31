@@ -1,5 +1,6 @@
-score 25  jewels left 17  level 1
-dwarf (160, 192)
+score 25  lives 3  jewels left 17  level 1
+dwarf (160, 192)  caught false  over false
+goblins [{228 32 3 true}]  entered 1  killed 0
 ##*#####==#####*##
 #####*======*#####
 ##*###=#==#=###*##

@@ -17,6 +17,12 @@ func TestDwarfSpeedDividesTheCell(t *testing.T) {
 	}
 }
 
+func TestGoblinSpeedDividesTheCell(t *testing.T) {
+	if CellSize%BaseTuning.GoblinSpeed != 0 {
+		t.Errorf("speed %d never lands on a cell of %d", BaseTuning.GoblinSpeed, CellSize)
+	}
+}
+
 func TestLevelForRepeats(t *testing.T) {
 	if &LevelFor(1)[0] != &LevelFor(len(Levels) + 1)[0] {
 		t.Error("levels do not repeat after the last")

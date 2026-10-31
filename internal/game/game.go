@@ -45,6 +45,8 @@ type Content struct {
 	NativePlay bool
 	Sounds     audio.Bank
 	Sheets     []string
+	// Bindings are the game's own input actions.
+	Bindings []input.Binding
 	// The game's title and high score tunes, if it has its own (see
 	// scene.Context).
 	TitleTune, ScoresTune *audio.Tune
@@ -97,7 +99,7 @@ func New(seed uint64, saved Saved, synth *audio.Synth) (*Game, error) {
 		settings: saved.Settings,
 	}
 	g.ctx = &scene.Context{
-		Input:      input.New(&input.Ebiten{}),
+		Input:      input.New(&input.Ebiten{}, content.Bindings...),
 		RNG:        scene.NewRNG(seed),
 		Looks:      g.looks,
 		PixelFonts: bitmap,

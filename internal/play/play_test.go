@@ -9,9 +9,11 @@ import (
 
 	"github.com/comprofix/gemburrow/internal/config"
 	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
+	"github.com/comprofix/gemburrow/internal/input"
 	"github.com/comprofix/gemburrow/internal/scene"
 	"github.com/comprofix/gemburrow/internal/scene/scenetest"
 	"github.com/comprofix/gemburrow/internal/spritegrid"
+	"github.com/comprofix/gemburrow/internal/world"
 )
 
 const ticksPerCell = config.CellSize / config.DwarfSpeed
@@ -19,6 +21,7 @@ const ticksPerCell = config.CellSize / config.DwarfSpeed
 func start(t *testing.T) (*scenetest.Harness, *Play) {
 	h := scenetest.New(t, 42)
 	h.Ctx.NewPlay = New
+	h.Ctx.Input = input.New(h.Script, Bindings...)
 	p := New(h.Ctx, config.Skills[0]).(*Play)
 	h.Start(p)
 	h.Ticks(scene.FadeTicks)
@@ -51,6 +54,7 @@ func sweep(h *scenetest.Harness, p *Play) {
 
 func TestClearingALevelGoesToTheNext(t *testing.T) {
 	h, p := start(t)
+	p.World().Tuning.GoblinTotal = 0 // this test is about the digging
 	jewels := p.World().JewelsLeft
 	sweep(h, p)
 	if !p.World().Cleared() {
@@ -98,9 +102,72 @@ func TestGoldenReplay(t *testing.T) {
 	walk(h, p, ebiten.KeyArrowLeft, 5)
 	walk(h, p, ebiten.KeyArrowDown, 5)
 	walk(h, p, ebiten.KeyArrowLeft, 1) // onto a jewel
-	got := fmt.Sprintf("score %d  jewels left %d  level %d\ndwarf (%d, %d)\n%v",
-		h.Ctx.Session.Score, p.World().JewelsLeft, p.Level(), p.World().Dwarf.X, p.World().Dwarf.Y, p.World())
-	scenetest.Golden(t, "replay", got)
+	scenetest.Golden(t, "replay", summary(h, p))
+}
+
+// summary is the game's state, for the golden files.
+func summary(h *scenetest.Harness, p *Play) string {
+	w := p.World()
+	return fmt.Sprintf("score %d  lives %d  jewels left %d  level %d\ndwarf (%d, %d)  caught %v  over %v\ngoblins %v  entered %d  killed %d\n%v",
+		h.Ctx.Session.Score, h.Ctx.Session.Lives, w.JewelsLeft, p.Level(), w.Dwarf.X, w.Dwarf.Y, w.Caught, w.Over, w.Goblins, w.Spawned, w.Killed, w)
+}
+
+// TestGoldenChase walks the open tunnel, fires, then stands still until the
+// goblins have taken every life.
+func TestGoldenChase(t *testing.T) {
+	h, p := start(t)
+	walk(h, p, ebiten.KeyArrowRight, 3)
+	h.Run(scenetest.Hold(1, ebiten.KeySpace))
+	for !p.World().Over {
+		h.Ticks(1)
+	}
+	scenetest.Golden(t, "chase", summary(h, p))
+}
+
+func TestSpaceFires(t *testing.T) {
+	h, p := start(t)
+	h.Run(scenetest.Hold(1, ebiten.KeySpace), scenetest.Hold(1))
+	w := p.World()
+	if w.Shot == nil || w.Recharge == 0 {
+		t.Errorf("shot %v, recharge %d", w.Shot, w.Recharge)
+	}
+}
+
+func TestCaughtRespawnsAfterAPause(t *testing.T) {
+	h, p := start(t)
+	w := p.World()
+	w.Goblins = append(w.Goblins, world.Goblin{X: w.Dwarf.X, Y: w.Dwarf.Y})
+	h.Ticks(1)
+	if !w.Caught || h.Ctx.Session.Lives != config.StartLives-1 {
+		t.Fatalf("caught %v, lives %d", w.Caught, h.Ctx.Session.Lives)
+	}
+	h.Ticks(config.CaughtTicks)
+	if w.Caught {
+		t.Error("still caught after the pause")
+	}
+}
+
+// TestAWholeGame loses every life with a score, then goes through initials
+// to the high score table.
+func TestAWholeGame(t *testing.T) {
+	h, p := start(t)
+	skill := h.Ctx.Session.Skill
+	h.Ctx.Session.Score = 1000
+	for !p.World().Over {
+		h.Ticks(1)
+	}
+	if lives := h.Ctx.Session.Lives; lives != 0 {
+		t.Errorf("lives %d", lives)
+	}
+	h.Ticks(config.GameOverTicks + 2*scene.FadeTicks)
+	scenetest.Current[*scene.HighScoreEntry](h)
+	for range config.InitialsLen {
+		h.Press(ebiten.KeyEnter)
+	}
+	scenetest.Current[*scene.HighScoreTable](h)
+	if es := h.Ctx.Scores.Table(skill.ID); len(es) != 1 || es[0].Score != 1000 {
+		t.Errorf("table %v", es)
+	}
 }
 
 func TestSounds(t *testing.T) {
@@ -130,7 +197,10 @@ func TestSprites(t *testing.T) {
 			size[s.Name] = s.W
 		}
 	}
-	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf"} {
+	if size["shot"] != config.ShotSize {
+		t.Errorf("sprite %q is not %d square", "shot", config.ShotSize)
+	}
+	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "goblin"} {
 		if size[name] != config.CellSize {
 			t.Errorf("sprite %q is not %d square", name, config.CellSize)
 		}

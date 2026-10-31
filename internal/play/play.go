@@ -18,36 +18,50 @@ import (
 	"github.com/comprofix/gemburrow/internal/world"
 )
 
-// Animation.
+// Fire is the game's own input action (DESIGN §4).
+const Fire = input.NumActions
+
+// Bindings are the keys for the game's own actions.
+var Bindings = []input.Binding{{Action: Fire, Keys: []ebiten.Key{ebiten.KeySpace}}}
+
+// Animation and effects.
 const (
-	jewelTicks = 20 // ticks between the jewel's frames
-	stepPixels = 8  // pixels the dwarf moves between walking frames
+	jewelTicks  = 20 // ticks between the jewel's frames
+	goblinTicks = 12 // ticks between the goblin's frames
+	stepPixels  = 8  // pixels the dwarf moves between walking frames
+	flashTicks  = 6  // the caught dwarf flashes at this rate
+	shakeTicks  = 14
+	shakePixels = 3
+	// shotReadyX places the HUD's mark that the shot is ready, between the
+	// level and the lives.
+	shotReadyX = 416
 )
 
 // Play is a game in progress.
 type Play struct {
-	world *world.World
-	level int
-	ticks int64
-	clear int // ticks left of the level clear banner
+	world  *world.World
+	level  int
+	ticks  int64
+	clear  int // ticks left of the level clear banner
+	caught int // ticks left of the pause after being caught
 }
 
 // New starts a game at a skill.
 func New(ctx *scene.Context, skill config.Skill) scene.Scene {
 	ctx.Session = session.New(skill, config.StartLives)
 	p := &Play{level: max(ctx.StartLevel, 1)}
-	p.world = loadLevel(ctx.Session, p.level)
+	p.world = loadLevel(ctx, p.level)
 	return p
 }
 
 // loadLevel starts level n. The layouts are checked by the world's tests, so
 // a bad one is a programming error.
-func loadLevel(s *session.Session, n int) *world.World {
+func loadLevel(ctx *scene.Context, n int) *world.World {
 	l, err := world.Parse(config.LevelFor(n))
 	if err != nil {
 		panic(err)
 	}
-	return world.New(s, l)
+	return world.New(ctx.Session, l, config.BaseTuning, ctx.RNG)
 }
 
 // World is the game's state, for tests.
@@ -71,15 +85,27 @@ func (p *Play) Update(ctx *scene.Context) error {
 		return nil
 	}
 	p.ticks++
-	if p.clear > 0 {
+	switch {
+	case p.clear > 0:
 		p.clear--
 		if p.clear == 0 {
 			p.level++
-			p.world = loadLevel(ctx.Session, p.level)
+			p.world = loadLevel(ctx, p.level)
+		}
+		return nil
+	case p.caught > 0:
+		p.caught--
+		if p.caught == 0 {
+			if p.world.Over {
+				s := ctx.Session
+				ctx.Switch(scene.AfterGame(ctx, s.Skill, s.Score))
+			} else {
+				p.world.Respawn()
+			}
 		}
 		return nil
 	}
-	for _, e := range p.world.Update(heldDir(in)) {
+	for _, e := range p.world.Update(heldDir(in), in.Held(Fire)) {
 		switch e {
 		case world.Dug:
 			ctx.Audio.PlayEffect(Dig)
@@ -88,6 +114,19 @@ func (p *Play) Update(ctx *scene.Context) error {
 		case world.LevelCleared:
 			ctx.Audio.PlayEffect(LevelClear)
 			p.clear = config.LevelClearTicks
+		case world.ShotFired:
+			ctx.Audio.PlayEffect(Fired)
+		case world.GoblinShot:
+			ctx.Audio.PlayEffect(GoblinDown)
+		case world.ExtraLife:
+			ctx.Audio.PlayEffect(LifeGained)
+		case world.DwarfCaught:
+			ctx.Audio.PlayEffect(Caught)
+			ctx.Shake.Start(shakeTicks, shakePixels)
+			p.caught = config.CaughtTicks
+			if p.world.Over {
+				p.caught = config.GameOverTicks
+			}
 		}
 	}
 	return nil
@@ -113,6 +152,8 @@ func heldDir(in *input.Input) world.Dir {
 func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	sc, f := ctx.Scheme, ctx.Fonts
 	dst.Fill(gfx.RGBA(sc.Backdrop))
+	sheet := ctx.Sheet("gemburrow")
+	w := p.world
 
 	// The HUD (DESIGN §3).
 	ty := (config.HUDHeight - f.Large.LineHeight()) / 2
@@ -120,11 +161,13 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), ty, sc.Text, sc.Shadow)
 	lives := fmt.Sprintf("LIVES %d", ctx.Session.Lives)
 	f.Large.DrawShadowed(dst, lives, config.FieldX+config.FieldCols*config.CellSize-f.Large.Width(lives), ty, sc.Text, sc.Shadow)
+	shot := sheet.Sprite("shot")
+	if w.Recharge == 0 {
+		shot.Draw(dst, 0, shotReadyX, float64((config.HUDHeight-shot.H)/2), false)
+	}
 
 	// The field.
-	sheet := ctx.Sheet("gemburrow")
 	earth, tunnel, jewel := sheet.Sprite("earth"), sheet.Sprite("tunnel"), sheet.Sprite("jewel")
-	w := p.world
 	for y := range config.FieldRows {
 		for x := range config.FieldCols {
 			sx, sy := float64(config.FieldX+x*config.CellSize), float64(config.FieldY+y*config.CellSize)
@@ -139,16 +182,39 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		}
 	}
 
-	// The dwarf.
+	// The goblins and the shot.
+	goblin := sheet.Sprite("goblin")
+	for i, g := range w.Goblins {
+		goblin.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
+		if debug.Enabled {
+			debug.Box(dst, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), config.CellSize, config.CellSize, sc.Highlight)
+		}
+	}
+	if s := w.Shot; s != nil {
+		shot.Draw(dst, 0, float64(config.FieldX+s.X-shot.W/2), float64(config.FieldY+s.Y-shot.H/2), false)
+	}
+
+	// The dwarf, flashing once caught.
 	d := w.Dwarf
 	dx, dy := config.FieldX+d.X, config.FieldY+d.Y
-	sheet.Sprite("dwarf").Draw(dst, (d.X+d.Y)/stepPixels, float64(dx), float64(dy), d.FacesLeft)
+	if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
+		sheet.Sprite("dwarf").Draw(dst, (d.X+d.Y)/stepPixels, float64(dx), float64(dy), d.FacesLeft)
+	}
 	if debug.Enabled {
 		debug.Box(dst, float64(dx), float64(dy), config.CellSize, config.CellSize, sc.Highlight)
 	}
 
-	if p.clear > 0 {
-		scene.Dim(dst, sc.Shadow, 0.5)
-		ui.TextCentred(dst, f.Large, "LEVEL CLEAR", (ctx.Preset.ScreenHeight-f.Large.LineHeight())/2, sc.Title, sc.Shadow)
+	switch {
+	case p.clear > 0:
+		banner(ctx, dst, "LEVEL CLEAR")
+	case w.Over:
+		banner(ctx, dst, "GAME OVER")
 	}
+}
+
+// banner dims the field under a message.
+func banner(ctx *scene.Context, dst *ebiten.Image, msg string) {
+	sc, f := ctx.Scheme, ctx.Fonts
+	scene.Dim(dst, sc.Shadow, 0.5)
+	ui.TextCentred(dst, f.Large, msg, (ctx.Preset.ScreenHeight-f.Large.LineHeight())/2, sc.Title, sc.Shadow)
 }

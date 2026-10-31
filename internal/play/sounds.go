@@ -20,7 +20,27 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(16), Sustain: 0.5, Release: audio.Ticks(8), Volume: 0.8},
 		Notes: audio.Notes("D5:6 A5:6 D6:24"),
 	}}
+	// Fired is the dwarf firing.
+	Fired = &audio.Effect{Name: "shot", Channel: 1, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Release: audio.Ticks(2), Volume: 0.7},
+		Notes: audio.Notes("A6:3 E6:3 A5:5"),
+	}}
+	// GoblinDown is a goblin destroyed.
+	GoblinDown = &audio.Effect{Name: "goblin down", Channel: 3, Priority: 4, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Noise, Decay: audio.Ticks(16), Release: audio.Ticks(2), Volume: 0.8},
+		Notes: []audio.Note{{Hz: 1200, Dur: audio.Ticks(16)}},
+	}}
+	// Caught is the dwarf caught by a goblin.
+	Caught = &audio.Effect{Name: "caught", Channel: 0, Priority: 5, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(18), Sustain: 0.4, Release: audio.Ticks(8), Volume: 0.8},
+		Notes: audio.Notes("E5:8 C5:8 A4:8 E4:24"),
+	}}
+	// LifeGained is an extra life.
+	LifeGained = &audio.Effect{Name: "extra life", Channel: 0, Priority: 5, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(12), Sustain: 0.5, Release: audio.Ticks(6), Volume: 0.8},
+		Notes: audio.Notes("G5:5 C6:5 E6:5 G6:16"),
+	}}
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Effects: []*audio.Effect{Dig, Jewel, LevelClear}}
+var Sounds = audio.Bank{Effects: []*audio.Effect{Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained}}
