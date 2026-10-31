@@ -212,14 +212,23 @@ func drawJewel(n pen, frame int) {
 	}
 }
 
+// drawSack is a plump money bag: a flared top, a neck tied with cord, and a coin
+// on its belly.
 func drawSack(n pen) {
-	n.circle(16, 21, 10, resurrect64.Clay)
-	n.circle(15, 20, 9, resurrect64.Sand)
-	n.rect(13, 6, 6, 7, 1.5, resurrect64.Sand)
-	n.rect(11.5, 10, 9, 2.5, 1, resurrect64.Amber)
-	n.poly(resurrect64.Sand, 11, 3, 21, 3, 19, 7, 13, 7)
-	n.circle(16, 21, 4, resurrect64.Gold)
-	n.circle(16, 21, 2, resurrect64.Amber)
+	n.circle(16, 21.5, 10.5, resurrect64.Clay)
+	n.circle(15, 20.5, 9.5, resurrect64.Sand)
+	n.poly(resurrect64.Sand, 12, 11, 20, 11, 22, 15, 10, 15)
+	n.poly(resurrect64.Clay, 13, 8, 19, 8, 18.5, 10.5, 13.5, 10.5)
+	n.poly(resurrect64.Sand, 9.5, 1.5, 12.5, 3, 16, 1, 19.5, 3, 22.5, 1.5, 19.5, 8, 12.5, 8)
+	n.rect(11.5, 8.5, 9, 2.8, 1.2, resurrect64.Bark)
+	n.line(19.5, 10, 23, 13.5, 1.2, resurrect64.Bark)
+	n.circle(23.2, 13.8, 1.1, resurrect64.Bark)
+	n.circle(11, 16, 1.6, resurrect64.White)
+	n.circle(16, 21.5, 6, resurrect64.Amber)
+	n.circle(16, 21.5, 4.8, resurrect64.Gold)
+	n.rect(15, 17.8, 2, 7.4, 0.6, resurrect64.Rust)
+	n.rect(13.4, 18.8, 5.2, 1.6, 0.6, resurrect64.Rust)
+	n.rect(13.4, 22.8, 5.2, 1.6, 0.6, resurrect64.Rust)
 }
 
 func drawGold(n pen) {
