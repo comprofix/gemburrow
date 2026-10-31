@@ -230,9 +230,9 @@ func drawSack(n pen) {
 	n.circle(11, 16, 1.6, resurrect64.White)
 	n.circle(16, 21.5, 6, resurrect64.Amber)
 	n.circle(16, 21.5, 4.8, resurrect64.Gold)
-	n.rect(15, 17.8, 2, 7.4, 0.6, resurrect64.Rust)
-	n.rect(13.4, 18.8, 5.2, 1.6, 0.6, resurrect64.Rust)
-	n.rect(13.4, 22.8, 5.2, 1.6, 0.6, resurrect64.Rust)
+	for _, r := range [...][4]float64{{13.6, 18.2, 4.8, 1.3}, {13.6, 18.2, 1.3, 3.5}, {13.6, 20.9, 4.8, 1.3}, {17.1, 20.9, 1.3, 3.6}, {13.6, 23.5, 4.8, 1.3}, {15.4, 17, 1.2, 9}} {
+		n.rect(r[0], r[1], r[2], r[3], 0.3, resurrect64.Rust)
+	}
 }
 
 // drawGold is a heap of rough nuggets, each a lump of uneven facets.
@@ -271,8 +271,8 @@ const (
 // drawPick draws a pick-axe from the handle's end at (x0, y0) to its head at
 // (x1, y1), whose blade runs from (ax, ay) to (bx, by).
 func drawPick(n pen, x0, y0, x1, y1, ax, ay, bx, by float64) {
-	n.line(x0, y0, x1, y1, 1.8, resurrect64.Bark)
-	n.poly(resurrect64.Fog, ax, ay, x1, y1-1, bx, by, x1, y1+1)
+	n.line(x0, y0, x1, y1, 2.6, resurrect64.Caramel)
+	n.line(ax, ay, bx, by, 3, resurrect64.Mist)
 }
 
 func drawDwarf(n pen, frame, pick int) {
@@ -292,9 +292,9 @@ func drawDwarf(n pen, frame, pick int) {
 	n.poly(resurrect64.Fog, 8, 7, 9, 3, 13, 1, 19, 1, 23, 3, 24, 7)
 	switch pick {
 	case pickUp:
-		drawPick(n, 25, 19, 28, 6, 23, 7, 32, 3)
+		drawPick(n, 24, 20, 27, 5, 21, 8, 32, 2)
 	case pickDown:
-		drawPick(n, 25, 18, 30, 25, 26, 30, 32, 21)
+		drawPick(n, 24, 18, 29, 24, 25, 30, 32, 19)
 	}
 }
 
