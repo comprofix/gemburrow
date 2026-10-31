@@ -5,6 +5,7 @@ package play
 
 import (
 	"fmt"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -245,6 +246,9 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		goblin, troll = sheet.Sprite("goblin_scared"), sheet.Sprite("troll_scared")
 	}
 	for i, g := range w.Goblins {
+		if p.buried(g) {
+			continue
+		}
 		picture := goblin
 		if g.Troll > 0 {
 			picture = troll
@@ -262,7 +266,8 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	d := w.Dwarf
 	dx, dy := config.FieldX+d.X, config.FieldY+d.Y
 	if p.headstone() {
-		sheet.Sprite("headstone").Draw(dst, 0, float64(dx), float64(dy), false)
+		clip := dst.SubImage(image.Rect(dx, dy, dx+config.CellSize, dy+config.CellSize)).(*ebiten.Image)
+		sheet.Sprite("headstone").Draw(clip, 0, float64(dx), float64(dy+p.headstoneDrop(config.CellSize)), false)
 	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		if d.Digging {
 			sheet.Sprite("dwarf_dig").Draw(dst, int(p.ticks/digTicks), float64(dx), float64(dy), d.FacesLeft)
@@ -285,6 +290,21 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 // headstone reports whether the caught dwarf has given way to its headstone.
 func (p *Play) headstone() bool {
 	return p.world.Caught && p.dead >= config.CaughtFlashTicks
+}
+
+// headstoneDrop is how far the rising headstone still is below its place, in a
+// cell of the given size.
+func (p *Play) headstoneDrop(cell int) int {
+	left := config.HeadstoneRiseTicks - (p.dead - config.CaughtFlashTicks)
+	return cell * max(left, 0) / config.HeadstoneRiseTicks
+}
+
+// buried reports whether a goblin is out of sight, gone where the headstone
+// stands.
+func (p *Play) buried(g world.Goblin) bool {
+	d := p.world.Dwarf
+	return p.headstone() && g.X-d.X < config.CellSize && d.X-g.X < config.CellSize &&
+		g.Y-d.Y < config.CellSize && d.Y-g.Y < config.CellSize
 }
 
 // fleeing reports whether goblins are drawn afraid: all through a chase, flashing

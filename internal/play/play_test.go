@@ -344,7 +344,20 @@ func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
 	if !p.headstone() {
 		t.Error("no headstone after the flashing")
 	}
-	h.Ticks(config.CaughtTicks)
+	if drop := p.headstoneDrop(config.CellSize); drop <= 0 || drop > config.CellSize {
+		t.Errorf("drop %d as it starts to rise", drop)
+	}
+	if !p.buried(w.Goblins[0]) {
+		t.Error("the goblin can still be seen at the headstone")
+	}
+	if far := (world.Goblin{X: w.Dwarf.X + config.CellSize, Y: w.Dwarf.Y}); p.buried(far) {
+		t.Error("a goblin in the next cell was hidden")
+	}
+	h.Ticks(config.HeadstoneRiseTicks)
+	if drop := p.headstoneDrop(config.CellSize); drop != 0 {
+		t.Errorf("drop %d after rising", drop)
+	}
+	h.Ticks(config.CaughtTicks - config.HeadstoneRiseTicks)
 	if w.Caught || p.headstone() {
 		t.Errorf("after the pause: caught %v, headstone %v", w.Caught, p.headstone())
 	}

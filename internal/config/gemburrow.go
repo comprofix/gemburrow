@@ -41,11 +41,13 @@ const (
 	// entrance, counted in cells along the grid.
 	SpawnClearCells = 2
 	// CaughtTicks is the pause after the dwarf is caught, for the first
-	// CaughtFlashTicks of which it flashes before its headstone appears, and
+	// CaughtFlashTicks of which it flashes before its headstone rises from the
+	// ground over HeadstoneRiseTicks, and
 	// GameOverTicks how long the game over banner stays up.
-	CaughtTicks      = 2 * TPS
-	CaughtFlashTicks = TPS / 2
-	GameOverTicks    = 3 * TPS
+	CaughtTicks        = 2 * TPS
+	CaughtFlashTicks   = TPS / 2
+	HeadstoneRiseTicks = TPS / 2
+	GameOverTicks      = 3 * TPS
 
 	// Sacks and gold (DESIGN §6, D6). The speeds are in pixels per tick, and
 	// must divide CellSize. A sack bursts if it falls more than one cell.

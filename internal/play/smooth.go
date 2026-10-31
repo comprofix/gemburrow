@@ -2,6 +2,7 @@ package play
 
 import (
 	"fmt"
+	"image"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -125,6 +126,9 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 
 	// The goblins and the shot.
 	for i, g := range w.Goblins {
+		if p.buried(g) {
+			continue
+		}
 		n := at(g.X, g.Y)
 		n.mirror = g.FacesLeft
 		if g.Troll > 0 {
@@ -146,7 +150,11 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	n := at(d.X, d.Y)
 	n.mirror = d.FacesLeft
 	if p.headstone() {
-		drawHeadstone(n)
+		cell := s * config.CellSize
+		stone := n
+		stone.dst = dst.SubImage(image.Rect(int(n.x), int(n.y), int(n.x)+cell, int(n.y)+cell)).(*ebiten.Image)
+		stone.y += float64(p.headstoneDrop(cell))
+		drawHeadstone(stone)
 	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		pick := pickOnBack
 		if d.Digging {
