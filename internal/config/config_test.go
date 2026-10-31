@@ -147,7 +147,7 @@ func TestInGoBuild(t *testing.T) {
 	if !inGoBuild(filepath.Join("tmp", "go-build123", "b001", "exe")) {
 		t.Error("go-build folder not detected")
 	}
-	if inGoBuild(filepath.Join("games", "gameskeleton")) {
+	if inGoBuild(filepath.Join("games", "gemburrow")) {
 		t.Error("ordinary folder taken for go-build")
 	}
 }

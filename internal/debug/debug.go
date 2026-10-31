@@ -1,7 +1,7 @@
 // Package debug holds what debug builds add. Build or run with
 // -tags debug to turn it on:
 //
-//	go run -tags debug ./cmd/gameskeleton
+//	go run -tags debug ./cmd/gemburrow
 //
 // Enabled is a constant, so code behind "if debug.Enabled" is left out of
 // normal builds altogether.
@@ -11,7 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
-	"github.com/comprofix/gameskeleton/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/gfx"
 )
 
 // Box outlines a w×h rectangle at (x, y) in palette colour c, one pixel

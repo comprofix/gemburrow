@@ -5,8 +5,8 @@ package ui
 import (
 	"image"
 
-	"github.com/comprofix/gameskeleton/internal/gfx"
-	"github.com/comprofix/gameskeleton/internal/input"
+	"github.com/comprofix/gemburrow/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/input"
 )
 
 // Item is one line of a Menu.

@@ -3,8 +3,8 @@ package scene
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/input"
-	"github.com/comprofix/gameskeleton/internal/ui"
+	"github.com/comprofix/gemburrow/internal/input"
+	"github.com/comprofix/gemburrow/internal/ui"
 )
 
 // SoundTest plays each tune and effect in Context.Sounds on demand, to

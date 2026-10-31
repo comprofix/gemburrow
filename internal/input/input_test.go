@@ -6,8 +6,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/config"
-	"github.com/comprofix/gameskeleton/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/config"
+	"github.com/comprofix/gemburrow/internal/gfx"
 )
 
 // run plays steps through an Input and returns it after each tick.

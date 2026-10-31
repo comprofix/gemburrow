@@ -5,7 +5,7 @@ import (
 
 	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
 
-	"github.com/comprofix/gameskeleton/internal/config"
+	"github.com/comprofix/gemburrow/internal/config"
 )
 
 // Start streams s to the sound device through Ebitengine and returns the

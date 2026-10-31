@@ -7,7 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/scene"
+	"github.com/comprofix/gemburrow/internal/scene"
 )
 
 func TestHarnessRunsScenes(t *testing.T) {

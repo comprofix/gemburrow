@@ -1,7 +1,7 @@
 // Command winicon writes the program icon as a Windows .ico file, for a
 // release build to link into the exe so that Explorer shows it:
 //
-//	go run ./cmd/winicon gameskeleton.ico
+//	go run ./cmd/winicon gemburrow.ico
 //
 // The images come from internal/icon, the same as the window's. Each size
 // is stored in the file as a PNG, which Windows has read since Vista.
@@ -15,7 +15,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/comprofix/gameskeleton/internal/icon"
+	"github.com/comprofix/gemburrow/internal/icon"
 )
 
 func main() {

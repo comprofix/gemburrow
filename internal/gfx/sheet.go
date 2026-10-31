@@ -9,7 +9,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/spritegrid"
+	"github.com/comprofix/gemburrow/internal/spritegrid"
 )
 
 // Sprite is a named sprite's frames within a sheet.

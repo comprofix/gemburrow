@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes/resurrect64"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
 )
 
 // one is a game with the single look p.

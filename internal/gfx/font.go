@@ -8,7 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/bitfont"
+	"github.com/comprofix/gemburrow/internal/bitfont"
 )
 
 // Font draws text in any palette colour. Every character is CellWidth

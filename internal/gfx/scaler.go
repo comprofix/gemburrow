@@ -4,7 +4,7 @@ package gfx
 import (
 	"math"
 
-	"github.com/comprofix/gameskeleton/internal/config"
+	"github.com/comprofix/gemburrow/internal/config"
 )
 
 // Rect is a destination rectangle on the output surface, in output pixels.

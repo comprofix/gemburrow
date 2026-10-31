@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes"
 )
 
 // Transparent marks an empty pixel.

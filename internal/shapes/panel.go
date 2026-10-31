@@ -5,8 +5,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/gfx"
-	"github.com/comprofix/gameskeleton/internal/input"
+	"github.com/comprofix/gemburrow/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/input"
 )
 
 // None is a colour left out: a PanelStyle's Light or Shadow set to None is

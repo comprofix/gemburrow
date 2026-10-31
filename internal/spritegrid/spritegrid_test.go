@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes/resurrect64"
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes/sweetie16"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes/sweetie16"
 )
 
 const hexSrc = `; hex-digit sprites (Sweetie 16)

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/comprofix/gameskeleton/internal/config"
+	"github.com/comprofix/gemburrow/internal/config"
 )
 
 // Note is one step of a part: a pitch held for a time. Hz 0 is a rest.

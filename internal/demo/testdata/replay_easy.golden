@@ -1,8 +1,0 @@
-board 39x20  skill easy
-over true  ticks left 0
-score 230  dots 23  hearts 2
-player {12 9}
-dots [{30 13} {20 19} {13 4}]
-hazard 0 {17 5} going {0 -1}
-hazard 1 {36 9} going {0 1}
-hazard 2 {25 1} going {0 -1}

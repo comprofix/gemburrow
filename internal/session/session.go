@@ -2,7 +2,7 @@
 // lives. Games add their own fields.
 package session
 
-import "github.com/comprofix/gameskeleton/internal/config"
+import "github.com/comprofix/gemburrow/internal/config"
 
 // Session is one game in progress.
 type Session struct {

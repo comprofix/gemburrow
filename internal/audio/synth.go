@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/comprofix/gameskeleton/internal/config"
+	"github.com/comprofix/gemburrow/internal/config"
 )
 
 // Synth plays tunes and effects on a set of channels in one of the styles:

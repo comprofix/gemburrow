@@ -3,9 +3,9 @@ package scene
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/comprofix/gameskeleton/internal/config"
-	"github.com/comprofix/gameskeleton/internal/gfx"
-	"github.com/comprofix/gameskeleton/internal/ui"
+	"github.com/comprofix/gemburrow/internal/config"
+	"github.com/comprofix/gemburrow/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/ui"
 )
 
 // BlinkTicks is the blink period of "press any key" prompts.

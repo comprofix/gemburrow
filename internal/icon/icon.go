@@ -10,7 +10,7 @@ import (
 	"image/png"
 	"io/fs"
 
-	"github.com/comprofix/gameskeleton/assets"
+	"github.com/comprofix/gemburrow/assets"
 )
 
 // sizes lists each icon size and the hand-drawn sprite it is enlarged

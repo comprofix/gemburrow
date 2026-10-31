@@ -4,7 +4,7 @@
 // own, in the palette's published order.
 package resurrect64
 
-import "github.com/comprofix/gameskeleton/internal/gfx/palettes"
+import "github.com/comprofix/gemburrow/internal/gfx/palettes"
 
 // Colour indices.
 const (

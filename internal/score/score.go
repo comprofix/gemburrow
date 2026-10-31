@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/comprofix/gameskeleton/internal/config"
+	"github.com/comprofix/gemburrow/internal/config"
 )
 
 // Entry is one line of a table.

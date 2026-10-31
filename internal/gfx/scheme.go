@@ -1,6 +1,6 @@
 package gfx
 
-import "github.com/comprofix/gameskeleton/internal/gfx/palettes"
+import "github.com/comprofix/gemburrow/internal/gfx/palettes"
 
 // Scheme gives the shared scenes and menus their colours by role, so they
 // look right with any palette. Each role is a palette index.

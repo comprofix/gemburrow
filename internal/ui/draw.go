@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
-	"github.com/comprofix/gameskeleton/internal/gfx"
+	"github.com/comprofix/gemburrow/internal/gfx"
 )
 
 // LineGap is the space between menu lines, in pixels.

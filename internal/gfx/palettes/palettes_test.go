@@ -4,9 +4,9 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes"
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes/resurrect64"
-	"github.com/comprofix/gameskeleton/internal/gfx/palettes/sweetie16"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
+	"github.com/comprofix/gemburrow/internal/gfx/palettes/sweetie16"
 )
 
 func TestReadyMadePalettes(t *testing.T) {

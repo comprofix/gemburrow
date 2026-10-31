@@ -1,4 +1,4 @@
-module github.com/comprofix/gameskeleton
+module github.com/comprofix/gemburrow
 
 go 1.27.0
 
