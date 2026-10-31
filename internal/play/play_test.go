@@ -170,6 +170,22 @@ func TestGoldenSackDrop(t *testing.T) {
 	scenetest.Golden(t, "sackdrop", summary(h, p))
 }
 
+// TestGoldenSackPush pushes a sack of the first level over a jewel, which it
+// leaves in place for the dwarf to take, and on through the earth.
+func TestGoldenSackPush(t *testing.T) {
+	h, p := start(t)
+	w := p.World()
+	w.Tuning.GoblinTotal = 0
+	walk(h, p, ebiten.KeyArrowLeft, 4)
+	walk(h, p, ebiten.KeyArrowDown, 1)
+	// Pushing is at half walking speed, so this is two cells.
+	h.Run(scenetest.Hold(4*ticksPerCell, ebiten.KeyArrowLeft))
+	if s := w.Sacks[2]; s.X != 1*config.CellSize || !w.Earth(1, 5) || h.Ctx.Session.Score != config.JewelPoints {
+		t.Errorf("sack %+v, earth under it %v, score %d", s, w.Earth(1, 5), h.Ctx.Session.Score)
+	}
+	scenetest.Golden(t, "sackpush", fmt.Sprintf("%s\nsacks %+v\n", summary(h, p), w.Sacks))
+}
+
 // TestGoldenChase walks the open tunnel, fires, then stands still until the
 // goblins have taken every life.
 func TestGoldenChase(t *testing.T) {
