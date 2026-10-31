@@ -10,7 +10,7 @@ func init() {
 		Sheets:   []string{"gemburrow"},
 		Bindings: play.Bindings,
 
-		TitleTune:  play.TitleTune,
+		TitleTune:  play.BurrowTune,
 		ScoresTune: play.ScoresTune,
 		TitleArt:   play.DrawTitle,
 

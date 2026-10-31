@@ -383,7 +383,7 @@ func TestTheFuneralMarchFitsThePauseAfterDying(t *testing.T) {
 	}
 }
 
-func TestDyingStopsTheMusicForTheMarchThenTheDiggingTuneReturns(t *testing.T) {
+func TestDyingStopsTheMusicForTheMarchThenTheThemeReturns(t *testing.T) {
 	h, p := start(t)
 	synth := audio.NewSynth(config.Chip4)
 	h.Ctx.Audio = synth
@@ -398,7 +398,7 @@ func TestDyingStopsTheMusicForTheMarchThenTheDiggingTuneReturns(t *testing.T) {
 		t.Errorf("the march was cut off by %v", synth.Tune())
 	}
 	h.Ticks(1)
-	if w.Caught || synth.Tune() != DiggingTune {
+	if w.Caught || synth.Tune() != BurrowTune {
 		t.Errorf("after the pause, caught %v, tune %v", w.Caught, synth.Tune())
 	}
 }
@@ -425,5 +425,21 @@ func TestTheHeadstoneFlashesOnlyAfterTheMarch(t *testing.T) {
 	h.Ticks(2)
 	if w.Caught {
 		t.Error("the dwarf did not come back")
+	}
+}
+
+func TestTheThemeLoopsSixteenWholeBars(t *testing.T) {
+	want := audio.Ticks(16 * 96)
+	for i, part := range BurrowTune.Parts {
+		var sum time.Duration
+		for _, n := range part.Notes {
+			sum += n.Dur
+		}
+		if sum != want {
+			t.Errorf("part %d lasts %v, want %v", i, sum, want)
+		}
+	}
+	if !BurrowTune.Loop {
+		t.Error("the theme does not loop")
 	}
 }

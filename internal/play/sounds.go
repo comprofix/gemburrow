@@ -85,7 +85,7 @@ var (
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ChaseTune, FuneralTune, ScoresTune}, Effects: []*audio.Effect{
+var Sounds = audio.Bank{Tunes: []*audio.Tune{BurrowTune, ChaseTune, FuneralTune, ScoresTune}, Effects: []*audio.Effect{
 	Dig, Jewel, JewelRun, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
 	MushroomUp, MushroomTaken, GoblinEaten,
 }}

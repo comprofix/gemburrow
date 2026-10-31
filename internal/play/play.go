@@ -59,7 +59,7 @@ func New(ctx *scene.Context, skill config.Skill) scene.Scene {
 	ctx.Session = session.New(skill, config.StartLives)
 	p := &Play{level: max(ctx.StartLevel, 1)}
 	p.world = loadLevel(ctx, p.level)
-	ctx.Audio.PlayTune(DiggingTune)
+	ctx.Audio.PlayTune(BurrowTune)
 	return p
 }
 
@@ -99,7 +99,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 		p.clear--
 		if p.clear == 0 {
 			if p.world.Chase > 0 {
-				ctx.Audio.PlayTune(DiggingTune)
+				ctx.Audio.PlayTune(BurrowTune)
 			}
 			p.level++
 			p.world = loadLevel(ctx, p.level)
@@ -114,7 +114,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 				ctx.Switch(scene.AfterGame(ctx, s.Skill, s.Score))
 			} else {
 				p.world.Respawn()
-				ctx.Audio.PlayTune(DiggingTune)
+				ctx.Audio.PlayTune(BurrowTune)
 			}
 		}
 		return nil
@@ -150,7 +150,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 		case world.GoblinEaten:
 			ctx.Audio.PlayEffect(GoblinEaten)
 		case world.ChaseOver:
-			ctx.Audio.PlayTune(DiggingTune)
+			ctx.Audio.PlayTune(BurrowTune)
 		case world.ExtraLife:
 			ctx.Audio.PlayEffect(LifeGained)
 		case world.DwarfCaught:
