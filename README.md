@@ -5,9 +5,11 @@ Tunnel through the earth, collect jewels and treasure, and outwit the kobolds.
 You are a dwarf digging through a cavern. Clear every jewel to finish a level,
 drop money bags on the kobolds that chase you, and grab the gold before it
 vanishes. Impatient kobolds swell into goblins that dig straight for you.
-Once all of a level's kobolds are in, a glowing mushroom appears in the top-right
-corner: take it, and for a short time they flee and you can eat them. There are Easy, Normal and Hard skills, and two looks to switch
-between in Options: Smooth and Modern pixel art.
+Once a level, a glowing mushroom appears somewhere in the tunnels: take it before
+it vanishes, and for a short time they flee and you can eat them. From level 3, a
+rare tankard of ale gives you an extra life, as does every 20,000 points. There are
+Easy, Normal and Hard skills, and two looks to switch between in Options: Smooth
+and Modern pixel art.
 
 Created from [gameskeleton](https://github.com/comprofix/gameskeleton) v0.5.1.
 
