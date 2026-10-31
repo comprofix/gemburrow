@@ -193,11 +193,8 @@ Existing games are not updated automatically.
 
 ## Personal documents
 
-`DESIGN.md` and `PLAN.md` are personal working documents. `.gitignore` keeps
-them out of git, so back them up somewhere else. `AGENTS.md` is tracked, so everyone working on the game gets the same shared
-guidance. `CLAUDE.md` is a compatibility hand-off for Claude Code. Keep
-personal instructions in the local, untracked configuration supported by
-your chosen coding agent.
+`DESIGN.md`, `PLAN.md`, `AGENTS.md` and `CLAUDE.md` are private working documents
+and agent instructions. `.gitignore` keeps them out of git.
 
 ## License
 
