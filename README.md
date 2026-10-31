@@ -3,8 +3,10 @@
 Tunnel through the earth, collect jewels and treasure, and outwit the goblins.
 
 You are a dwarf digging through a cavern. Clear every jewel to finish a level,
-drop sacks of gold on the goblins that chase you, and grab the gold before it
-vanishes. There are Easy, Normal and Hard skills, and two looks to switch
+drop money bags on the goblins that chase you, and grab the gold before it
+vanishes. Impatient goblins swell into cave trolls that dig straight for you.
+Once all of a level's goblins are in, a glowing mushroom appears in the top-right
+corner: take it, and for a short time they flee and you can eat them. There are Easy, Normal and Hard skills, and two looks to switch
 between in Options: Smooth and Modern pixel art.
 
 Created from [gameskeleton](https://github.com/comprofix/gameskeleton) v0.5.1.
