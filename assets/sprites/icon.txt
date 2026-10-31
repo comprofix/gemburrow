@@ -1,0 +1,62 @@
+; The skeleton's stand-in program icon: a play sign on a rounded square. Draw
+; the game's own in its place before the first release, then set
+; icon.Placeholder to false (internal/icon/placeholder.go); a release fails
+; until then.
+; Each size is drawn by hand and only ever enlarged in whole steps:
+; icon16 for 16 and 48 pixels, icon32 for 32, 64, 128 and 256.
+; Only colours both ready-made palettes have are used, so it works with either.
+colours N=Navy b=Blue s=Sky w=White
+
+; The small icon.
+sprite icon16 16 16
+..ssssssssssss..
+.sNNNNNNNNNNNNs.
+sNNNNNNNNNNNNNNs
+sNNNNNwNNNNNNNNs
+sNNNNNwwNNNNNNNs
+sNNNNNwwwNNNNNNs
+sNNNNNwwwwNNNNNs
+sNNNNNwwwwwNNNNs
+sNNNNNwwwwwNNNNs
+sNNNNNwwwwNNNNNs
+sNNNNNwwwNNNNNNs
+sNNNNNwwNNNNNNNs
+sNNNNNwNNNNNNNNs
+sNNNNNNNNNNNNNNs
+.sNNNNNNNNNNNNs.
+..ssssssssssss..
+
+; The large icon.
+sprite icon32 32 32
+...ssssssssssssssssssssssssss...
+..sbbbbbbbbbbbbbbbbbbbbbbbbbbs..
+.sbNNNNNNNNNNNNNNNNNNNNNNNNNNbs.
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwwNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwwwNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwwwNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwwNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwwNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwwNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwwNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwwNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwwNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwwNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwwNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNwNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+sbNNNNNNNNNNNNNNNNNNNNNNNNNNNNbs
+.sbNNNNNNNNNNNNNNNNNNNNNNNNNNbs.
+..sbbbbbbbbbbbbbbbbbbbbbbbbbbs..
+...ssssssssssssssssssssssssss...

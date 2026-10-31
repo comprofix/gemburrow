@@ -1,0 +1,52 @@
+# Personal working documents and agent-specific local configuration (not tracked).
+# AGENTS.md is the canonical, shared instruction file; CLAUDE.md is its compatibility entry point.
+CLAUDE.local.md
+DESIGN.md
+PLAN.md
+.mcp.json
+.worktreeinclude
+.claude/
+
+# Build output
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.syso
+
+# Go test / profiling artefacts
+*.test
+*.out
+*.prof
+coverage.*
+go.work
+go.work.sum
+
+# Environment / local config
+.env
+.env.*
+
+# Saved settings and high scores, written next to the game
+/settings.json
+/scores.json
+
+# Sprite preview sheets (spritegen -preview)
+/preview/
+
+# Reference material (screenshots, videos, extracted frames) - never committed
+/ref/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
