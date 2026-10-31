@@ -153,9 +153,8 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	if p.headstone() {
 		if p.headstoneShown() {
 			cell := s * config.CellSize
-			stone := n
+			stone := p.headstonePen(n, cell)
 			stone.dst = dst.SubImage(image.Rect(int(n.x), int(n.y), int(n.x)+cell, int(n.y)+cell)).(*ebiten.Image)
-			stone.y += float64(p.headstoneDrop(cell))
 			drawHeadstone(stone)
 		}
 	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
@@ -522,6 +521,16 @@ func drawMushroom(n pen, frame int) {
 	n.circle(11, 10, 2.6, resurrect64.Lavender)
 	n.circle(20, 8, 2, resurrect64.White)
 	n.circle(22, 14, 2.4, resurrect64.Lavender)
+}
+
+// headstonePen is the pen for the headstone in the dwarf's cell of the given
+// size, as far below its place as it still has to rise. It takes the dwarf's
+// place but not the way they faced, so that RIP always reads forwards.
+func (p *Play) headstonePen(dwarf pen, cell int) pen {
+	stone := dwarf
+	stone.mirror = false
+	stone.y += float64(p.headstoneDrop(cell))
+	return stone
 }
 
 // drawHeadstone is the dwarf's grave: a round-topped stone reading RIP, with grass

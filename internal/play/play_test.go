@@ -364,6 +364,15 @@ func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
 	}
 }
 
+func TestTheHeadstoneReadsForwardsWhicheverWayTheDwarfFaced(t *testing.T) {
+	_, p := start(t)
+	for _, left := range []bool{false, true} {
+		if p.headstonePen(pen{mirror: left}, config.CellSize).mirror {
+			t.Errorf("headstone mirrored when the dwarf's facing left is %v", left)
+		}
+	}
+}
+
 func TestTheFuneralMarchFitsThePauseAfterDying(t *testing.T) {
 	pause := audio.Ticks(config.CaughtTicks)
 	for i, part := range FuneralTune.Parts {
