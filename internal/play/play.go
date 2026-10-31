@@ -1,6 +1,6 @@
 // Package play is the play scene: it runs the world, draws it, and turns its
-// events into sounds. It is pixel art, enlarged in the smooth look until it
-// is redrawn natively.
+// events into sounds. It draws for either look: sprites in the pixel look, and
+// shapes in the smooth one.
 package play
 
 import (
@@ -164,6 +164,10 @@ func heldDir(in *input.Input) world.Dir {
 
 // Draw implements scene.Scene.
 func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
+	if ctx.Preset.Art == config.ArtSmooth {
+		p.drawSmooth(ctx, dst)
+		return
+	}
 	sc, f := ctx.Scheme, ctx.Fonts
 	dst.Fill(gfx.RGBA(sc.Backdrop))
 	sheet := ctx.Sheet("gemburrow")
