@@ -30,8 +30,8 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Release: audio.Ticks(2), Volume: 0.7},
 		Notes: audio.Notes("A6:3 E6:3 A5:5"),
 	}}
-	// GoblinDown is a goblin destroyed.
-	GoblinDown = &audio.Effect{Name: "goblin down", Channel: 3, Priority: 4, Part: audio.Part{
+	// KoboldDown is a kobold destroyed.
+	KoboldDown = &audio.Effect{Name: "kobold down", Channel: 3, Priority: 4, Part: audio.Part{
 		Voice: audio.Voice{Wave: audio.Noise, Decay: audio.Ticks(16), Release: audio.Ticks(2), Volume: 0.8},
 		Notes: []audio.Note{{Hz: 1200, Dur: audio.Ticks(16)}},
 	}}
@@ -72,8 +72,8 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.5, Release: audio.Ticks(4), Volume: 0.8},
 		Notes: audio.Notes("A5:3 C6:3 E6:3 A6:12"),
 	}}
-	// GoblinEaten is a goblin eaten in the chase.
-	GoblinEaten = &audio.Effect{Name: "goblin eaten", Channel: 1, Priority: 4, Part: audio.Part{
+	// KoboldEaten is a kobold eaten in the chase.
+	KoboldEaten = &audio.Effect{Name: "kobold eaten", Channel: 1, Priority: 4, Part: audio.Part{
 		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(8), Release: audio.Ticks(3), Volume: 0.8},
 		Notes: audio.Notes("E5:3 G5:3 E6:8"),
 	}}
@@ -86,6 +86,6 @@ var (
 
 // Sounds are the game's sounds, for the sound test.
 var Sounds = audio.Bank{Tunes: []*audio.Tune{BurrowTune, ChaseTune, FuneralTune, ScoresTune}, Effects: []*audio.Effect{
-	Dig, Jewel, JewelRun, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
-	MushroomUp, MushroomTaken, GoblinEaten,
+	Dig, Jewel, JewelRun, LevelClear, Fired, KoboldDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
+	MushroomUp, MushroomTaken, KoboldEaten,
 }}

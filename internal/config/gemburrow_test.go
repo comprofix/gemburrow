@@ -17,9 +17,9 @@ func TestDwarfSpeedDividesTheCell(t *testing.T) {
 	}
 }
 
-func TestGoblinSpeedDividesTheCell(t *testing.T) {
-	if CellSize%BaseTuning.GoblinSpeed != 0 {
-		t.Errorf("speed %d never lands on a cell of %d", BaseTuning.GoblinSpeed, CellSize)
+func TestKoboldSpeedDividesTheCell(t *testing.T) {
+	if CellSize%BaseTuning.KoboldSpeed != 0 {
+		t.Errorf("speed %d never lands on a cell of %d", BaseTuning.KoboldSpeed, CellSize)
 	}
 }
 
@@ -41,9 +41,9 @@ func TestNormalFollowsTheOriginalRamp(t *testing.T) {
 		{50, 15, 5, 25, 90, 5},
 	} {
 		got := TuningFor(normal, c.level)
-		if got.GoblinTotal != c.total || got.GoblinsAtOnce != c.atOnce ||
-			got.GoblinSpawnTicks != originalTicks(c.gap) || got.ShotRechargeTicks != originalTicks(c.recharge) ||
-			got.GoblinExtraOneIn != c.extra {
+		if got.KoboldTotal != c.total || got.KoboldsAtOnce != c.atOnce ||
+			got.KoboldSpawnTicks != originalTicks(c.gap) || got.ShotRechargeTicks != originalTicks(c.recharge) ||
+			got.KoboldExtraOneIn != c.extra {
 			t.Errorf("level %d: %+v", c.level, got)
 		}
 	}
@@ -55,19 +55,19 @@ func TestSkillsOrderTheDifficulty(t *testing.T) {
 	}
 	for level := 1; level <= RampLevels; level++ {
 		e, n, h := TuningFor(Skills[0], level), TuningFor(Skills[1], level), TuningFor(Skills[2], level)
-		if e.GoblinTotal >= n.GoblinTotal || n.GoblinTotal >= h.GoblinTotal {
-			t.Errorf("level %d: totals %d, %d, %d", level, e.GoblinTotal, n.GoblinTotal, h.GoblinTotal)
+		if e.KoboldTotal >= n.KoboldTotal || n.KoboldTotal >= h.KoboldTotal {
+			t.Errorf("level %d: totals %d, %d, %d", level, e.KoboldTotal, n.KoboldTotal, h.KoboldTotal)
 		}
 		if e.ShotRechargeTicks >= n.ShotRechargeTicks || n.ShotRechargeTicks >= h.ShotRechargeTicks {
 			t.Errorf("level %d: recharges %d, %d, %d", level, e.ShotRechargeTicks, n.ShotRechargeTicks, h.ShotRechargeTicks)
 		}
-		if e.GoblinSpawnTicks <= n.GoblinSpawnTicks || n.GoblinSpawnTicks <= h.GoblinSpawnTicks {
-			t.Errorf("level %d: entry gaps %d, %d, %d", level, e.GoblinSpawnTicks, n.GoblinSpawnTicks, h.GoblinSpawnTicks)
+		if e.KoboldSpawnTicks <= n.KoboldSpawnTicks || n.KoboldSpawnTicks <= h.KoboldSpawnTicks {
+			t.Errorf("level %d: entry gaps %d, %d, %d", level, e.KoboldSpawnTicks, n.KoboldSpawnTicks, h.KoboldSpawnTicks)
 		}
-		if e.GoblinExtraOneIn <= n.GoblinExtraOneIn || n.GoblinExtraOneIn <= h.GoblinExtraOneIn {
-			t.Errorf("level %d: extra steps %d, %d, %d", level, e.GoblinExtraOneIn, n.GoblinExtraOneIn, h.GoblinExtraOneIn)
+		if e.KoboldExtraOneIn <= n.KoboldExtraOneIn || n.KoboldExtraOneIn <= h.KoboldExtraOneIn {
+			t.Errorf("level %d: extra steps %d, %d, %d", level, e.KoboldExtraOneIn, n.KoboldExtraOneIn, h.KoboldExtraOneIn)
 		}
-		if h.TrollAfterTicks < 0 || e.TrollAfterTicks <= n.TrollAfterTicks || h.GoblinsAtOnce > h.GoblinTotal {
+		if h.GoblinAfterTicks < 0 || e.GoblinAfterTicks <= n.GoblinAfterTicks || h.KoboldsAtOnce > h.KoboldTotal {
 			t.Errorf("level %d: hard %+v", level, h)
 		}
 	}

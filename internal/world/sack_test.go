@@ -7,25 +7,25 @@ import (
 	"github.com/comprofix/gemburrow/internal/config"
 )
 
-func TestTrollEatsAJewelWithoutScore(t *testing.T) {
+func TestGoblinEatsAJewelWithoutScore(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel})
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
-	addGoblin(w, 4, 5)
-	w.Goblins[0].Troll = 100
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = -1, 1000*config.TPS
+	addKobold(w, 4, 5)
+	w.Kobolds[0].Goblin = 100
 	jewels := w.JewelsLeft
-	run(w, None, cell/w.Tuning.GoblinSpeed)
+	run(w, None, cell/w.Tuning.KoboldSpeed)
 	if w.Jewel(3, 5) || w.JewelsLeft != jewels-1 || s.Score != 0 {
 		t.Errorf("jewel %v, left %d of %d, score %d", w.Jewel(3, 5), w.JewelsLeft, jewels, s.Score)
 	}
 }
 
-func TestWalkingGoblinLeavesAJewel(t *testing.T) {
+func TestWalkingKoboldLeavesAJewel(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel, {4, 5}: config.LevelTunnel})
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
-	addGoblin(w, 4, 5)
-	run(w, None, 2*cell/w.Tuning.GoblinSpeed)
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = -1, 1000*config.TPS
+	addKobold(w, 4, 5)
+	run(w, None, 2*cell/w.Tuning.KoboldSpeed)
 	if !w.Jewel(3, 5) {
-		t.Error("a walking goblin took the jewel")
+		t.Error("a walking kobold took the jewel")
 	}
 }
 
@@ -152,10 +152,10 @@ func TestSackCannotBePushed(t *testing.T) {
 	}
 }
 
-func TestGoblinStopsAPush(t *testing.T) {
+func TestKoboldStopsAPush(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 3}: config.LevelDwarf, {1, 3}: config.LevelSack, {2, 3}: config.LevelTunnel})
-	w.Tuning.GoblinSpeed = 0
-	addGoblin(w, 2, 3)
+	w.Tuning.KoboldSpeed = 0
+	addKobold(w, 2, 3)
 	run(w, Right, ticksPerCell)
 	if w.Dwarf.X != 0 || w.Sacks[0].X != cell {
 		t.Errorf("dwarf x %d, sack x %d", w.Dwarf.X, w.Sacks[0].X)
@@ -189,21 +189,21 @@ func TestSackAndGoldStopTheShot(t *testing.T) {
 	}
 }
 
-func TestFallingSackCrushesAGoblin(t *testing.T) {
+func TestFallingSackCrushesAKobold(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{
 		{0, 0}: config.LevelDwarf, {5, 3}: config.LevelSack,
 		{5, 4}: config.LevelTunnel, {5, 5}: config.LevelTunnel,
 	})
-	w.Tuning.TrollAfterTicks = -1
-	w.Tuning.GoblinSpeed = 0 // it stands under the sack
-	w.Goblins = []Goblin{{X: 5 * cell, Y: 5 * cell}}
+	w.Tuning.GoblinAfterTicks = -1
+	w.Tuning.KoboldSpeed = 0 // it stands under the sack
+	w.Kobolds = []Kobold{{X: 5 * cell, Y: 5 * cell}}
 	w.Spawned = 1
 	ev := run(w, None, wobbleAndFall(2))
-	if !slices.Contains(ev, GoblinCrushed) {
-		t.Fatalf("events %v, want GoblinCrushed", ev)
+	if !slices.Contains(ev, KoboldCrushed) {
+		t.Fatalf("events %v, want KoboldCrushed", ev)
 	}
-	if len(w.Goblins) != 0 || w.Killed != 1 || s.Score != config.GoblinPoints {
-		t.Errorf("goblins %v, killed %d, score %d", w.Goblins, w.Killed, s.Score)
+	if len(w.Kobolds) != 0 || w.Killed != 1 || s.Score != config.KoboldPoints {
+		t.Errorf("kobolds %v, killed %d, score %d", w.Kobolds, w.Killed, s.Score)
 	}
 }
 
@@ -219,74 +219,74 @@ func TestFallingSackCatchesTheDwarf(t *testing.T) {
 	}
 }
 
-func TestTrollCutsThroughEarthThenWalksAgain(t *testing.T) {
+func TestGoblinCutsThroughEarthThenWalksAgain(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.TrollAfterTicks = -1
-	w.Tuning.GoblinSpawnTicks = 1000 * config.TPS
-	addGoblin(w, 6, 0)
-	w.Goblins[0].Troll = cell / w.Tuning.GoblinSpeed // one cell's worth
-	run(w, None, cell/w.Tuning.GoblinSpeed)
-	if g := w.Goblins[0]; g.X != 5*cell || g.Troll != 0 {
-		t.Fatalf("troll %+v", g)
+	w.Tuning.GoblinAfterTicks = -1
+	w.Tuning.KoboldSpawnTicks = 1000 * config.TPS
+	addKobold(w, 6, 0)
+	w.Kobolds[0].Goblin = cell / w.Tuning.KoboldSpeed // one cell's worth
+	run(w, None, cell/w.Tuning.KoboldSpeed)
+	if g := w.Kobolds[0]; g.X != 5*cell || g.Goblin != 0 {
+		t.Fatalf("goblin %+v", g)
 	}
 	if w.Earth(5, 0) {
-		t.Error("the troll left earth behind")
+		t.Error("the goblin left earth behind")
 	}
 	// A walker again, it has only the cell it dug and the one it came from.
 	for range 8 * cell {
 		w.Update(None, false)
-		if g := w.Goblins[0]; g.X < 5*cell || g.X > 6*cell || g.Y != 0 {
+		if g := w.Kobolds[0]; g.X < 5*cell || g.X > 6*cell || g.Y != 0 {
 			t.Fatalf("walked through earth: %+v", g)
 		}
 	}
 }
 
-func TestCrossingGoblinsTurnIntoATrollInTime(t *testing.T) {
+func TestCrossingKoboldsTurnIntoAGoblinInTime(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
-	addGoblin(w, 6, 0)
-	addGoblin(w, 6, 0)
-	run(w, None, w.Tuning.TrollAfterTicks)
-	if w.Goblins[0].Troll > 0 {
-		t.Fatal("turned troll too soon")
+	w.Tuning.KoboldSpawnTicks, w.Tuning.KoboldSpeed = 1000*config.TPS, 0
+	addKobold(w, 6, 0)
+	addKobold(w, 6, 0)
+	run(w, None, w.Tuning.GoblinAfterTicks)
+	if w.Kobolds[0].Goblin > 0 {
+		t.Fatal("turned goblin too soon")
 	}
 	run(w, None, 1)
-	if w.Goblins[0].Troll != w.Tuning.TrollTicks {
-		t.Errorf("troll %d, want %d", w.Goblins[0].Troll, w.Tuning.TrollTicks)
+	if w.Kobolds[0].Goblin != w.Tuning.GoblinTicks {
+		t.Errorf("goblin %d, want %d", w.Kobolds[0].Goblin, w.Tuning.GoblinTicks)
 	}
 }
 
-func TestALoneGoblinStaysAGoblin(t *testing.T) {
+func TestALoneKoboldStaysAKobold(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
-	addGoblin(w, 6, 0)
-	run(w, None, 2*w.Tuning.TrollAfterTicks)
-	if w.Goblins[0].Troll > 0 {
-		t.Error("turned troll with nothing to provoke it")
+	w.Tuning.KoboldSpawnTicks, w.Tuning.KoboldSpeed = 1000*config.TPS, 0
+	addKobold(w, 6, 0)
+	run(w, None, 2*w.Tuning.GoblinAfterTicks)
+	if w.Kobolds[0].Goblin > 0 {
+		t.Error("turned goblin with nothing to provoke it")
 	}
 }
 
-func TestATrollShrinksBackAndMustGrowImpatientAgain(t *testing.T) {
+func TestAGoblinShrinksBackAndMustGrowImpatientAgain(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
-	addGoblin(w, 6, 0)
-	w.Goblins[0].Troll, w.Goblins[0].impatience = 1, 5
+	w.Tuning.KoboldSpawnTicks, w.Tuning.KoboldSpeed = 1000*config.TPS, 0
+	addKobold(w, 6, 0)
+	w.Kobolds[0].Goblin, w.Kobolds[0].impatience = 1, 5
 	run(w, None, 1)
-	if g := w.Goblins[0]; g.Troll != 0 || g.impatience != 0 {
+	if g := w.Kobolds[0]; g.Goblin != 0 || g.impatience != 0 {
 		t.Errorf("after its time %+v", g)
 	}
 }
 
-func TestAGoblinStuckOnASackGrowsImpatient(t *testing.T) {
+func TestAKoboldStuckOnASackGrowsImpatient(t *testing.T) {
 	cells := map[[2]int]byte{{0, 0}: config.LevelDwarf, {1, 0}: config.LevelSack, {2, 0}: config.LevelTunnel}
 	w, _ := newWorld(t, cells)
-	w.Tuning.GoblinSpawnTicks = 1000 * config.TPS
-	w.Tuning.TrollAfterTicks = 10
+	w.Tuning.KoboldSpawnTicks = 1000 * config.TPS
+	w.Tuning.GoblinAfterTicks = 10
 	w.earth[1] = false // the sack lies in the open, as one pushed there would
-	addGoblin(w, 2, 0)
+	addKobold(w, 2, 0)
 	run(w, None, 40)
-	if w.Goblins[0].Troll == 0 {
-		t.Errorf("stayed a goblin: %+v", w.Goblins[0])
+	if w.Kobolds[0].Goblin == 0 {
+		t.Errorf("stayed a kobold: %+v", w.Kobolds[0])
 	}
 }
 
@@ -389,11 +389,11 @@ func TestWobblingSackCanBePushedClear(t *testing.T) {
 	}
 }
 
-func TestSackStoppedByAGoblinTurnsBack(t *testing.T) {
+func TestSackStoppedByAKoboldTurnsBack(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf, {5, 3}: config.LevelSack})
 	w.Sacks[0].State, w.Sacks[0].Slide, w.Sacks[0].X = SackSliding, Right, 5*cell+4
-	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
-	w.Goblins = []Goblin{{X: 6*cell + 5, Y: 3 * cell}}
+	w.Tuning.KoboldSpeed, w.Tuning.GoblinAfterTicks = 0, -1
+	w.Kobolds = []Kobold{{X: 6*cell + 5, Y: 3 * cell}}
 	w.Spawned = 1
 	run(w, None, cell)
 	if s := w.Sacks[0]; s.X != 5*cell || s.State != SackResting {
@@ -401,23 +401,23 @@ func TestSackStoppedByAGoblinTurnsBack(t *testing.T) {
 	}
 }
 
-func TestWalkingGoblinPushesASackSideways(t *testing.T) {
+func TestWalkingKoboldPushesASackSideways(t *testing.T) {
 	cells := corridor(map[[2]int]byte{{0, 3}: config.LevelDwarf}, 3, 1, 9)
 	cells[[2]int{4, 3}] = config.LevelSack
 	w, _ := newWorld(t, cells)
 	w.earth[3*config.FieldCols+4] = false
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
-	addGoblin(w, 5, 3)
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = -1, 1000*config.TPS
+	addKobold(w, 5, 3)
 	ev := run(w, None, cell/config.SackSlideSpeed)
 	if !slices.Contains(ev, SackPushed) {
 		t.Fatalf("events %v, want SackPushed", ev)
 	}
-	if s, g := w.Sacks[0], w.Goblins[0]; s.X != 3*cell || g.X != 4*cell {
-		t.Errorf("sack x %d, goblin x %d", s.X, g.X)
+	if s, g := w.Sacks[0], w.Kobolds[0]; s.X != 3*cell || g.X != 4*cell {
+		t.Errorf("sack x %d, kobold x %d", s.X, g.X)
 	}
 }
 
-func TestWalkingGoblinCantPassASackUpOrDown(t *testing.T) {
+func TestWalkingKoboldCantPassASackUpOrDown(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{
 		{0, 0}: config.LevelDwarf, {5, 3}: config.LevelSack, {5, 4}: config.LevelTunnel,
 	})
@@ -427,21 +427,21 @@ func TestWalkingGoblinCantPassASackUpOrDown(t *testing.T) {
 	}
 }
 
-func TestTrollDestroysASack(t *testing.T) {
+func TestGoblinDestroysASack(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelSack})
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
-	addGoblin(w, 4, 5)
-	w.Goblins[0].Troll = 100
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = -1, 1000*config.TPS
+	addKobold(w, 4, 5)
+	w.Kobolds[0].Goblin = 100
 	run(w, None, 2)
 	if len(w.Sacks) != 0 || len(w.Gold) != 0 || s.Score != 0 {
 		t.Errorf("sacks %v, gold %v, score %d", w.Sacks, w.Gold, s.Score)
 	}
 }
 
-func TestGoblinTakesGoldWithoutScore(t *testing.T) {
+func TestKoboldTakesGoldWithoutScore(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf, {6, 3}: config.LevelTunnel})
-	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
-	addGoblin(w, 6, 3)
+	w.Tuning.KoboldSpeed, w.Tuning.GoblinAfterTicks = 0, -1
+	addKobold(w, 6, 3)
 	w.Gold = []Gold{{X: 6, Y: 3, Ticks: config.GoldTicks}}
 	run(w, None, 1)
 	if len(w.Gold) != 0 || s.Score != 0 {
@@ -498,16 +498,16 @@ func TestDwarfAboveAFallingSackIsSafe(t *testing.T) {
 	}
 }
 
-func TestGoblinClimbingTurnsBackFromAFallingSack(t *testing.T) {
+func TestKoboldClimbingTurnsBackFromAFallingSack(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.TrollAfterTicks = -1
+	w.Tuning.GoblinAfterTicks = -1
 	w.Sacks = []Sack{{X: 7 * cell, Y: 0, State: SackFalling}}
-	w.Goblins = []Goblin{{X: 7 * cell, Y: 6*cell + 2, Moving: Up}}
+	w.Kobolds = []Kobold{{X: 7 * cell, Y: 6*cell + 2, Moving: Up}}
 	w.Spawned = 1
 	w.earth[1*config.FieldCols+7] = false
 	w.moveSacks()
-	if w.Goblins[0].Moving != Down {
-		t.Errorf("goblin %+v", w.Goblins[0])
+	if w.Kobolds[0].Moving != Down {
+		t.Errorf("kobold %+v", w.Kobolds[0])
 	}
 }
 
@@ -527,8 +527,8 @@ func TestBlockedPushDropsAWobblingSackAtOnce(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{
 		{0, 3}: config.LevelDwarf, {1, 3}: config.LevelSack, {1, 4}: config.LevelTunnel, {2, 3}: config.LevelTunnel,
 	})
-	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
-	addGoblin(w, 2, 3)
+	w.Tuning.KoboldSpeed, w.Tuning.GoblinAfterTicks = 0, -1
+	addKobold(w, 2, 3)
 	run(w, None, 2)
 	w.Update(Right, false)
 	if s := w.Sacks[0]; s.State != SackFalling || s.X != cell {

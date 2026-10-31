@@ -58,7 +58,7 @@ func sweep(h *scenetest.Harness, p *Play) {
 
 func TestClearingALevelGoesToTheNext(t *testing.T) {
 	h, p := start(t)
-	// This test is about the digging: no goblins, and no sacks in the way.
+	// This test is about the digging: no kobolds, and no sacks in the way.
 	rows := slices.Clone(config.LevelFor(1))
 	for i, r := range rows {
 		rows[i] = strings.ReplaceAll(r, string(rune(config.LevelSack)), string(rune(config.LevelEarth)))
@@ -68,7 +68,7 @@ func TestClearingALevelGoesToTheNext(t *testing.T) {
 		t.Fatal(err)
 	}
 	tuning := config.BaseTuning
-	tuning.GoblinTotal = 0
+	tuning.KoboldTotal = 0
 	p.world = world.New(h.Ctx.Session, l, tuning, h.Ctx.RNG)
 	jewels := p.World().JewelsLeft
 	sweep(h, p)
@@ -123,12 +123,12 @@ func TestGoldenReplay(t *testing.T) {
 // summary is the game's state, for the golden files.
 func summary(h *scenetest.Harness, p *Play) string {
 	w := p.World()
-	return fmt.Sprintf("score %d  lives %d  jewels left %d  level %d\ndwarf (%d, %d)  caught %v  over %v\ngoblins %v  entered %d  killed %d\n%v",
-		h.Ctx.Session.Score, h.Ctx.Session.Lives, w.JewelsLeft, p.Level(), w.Dwarf.X, w.Dwarf.Y, w.Caught, w.Over, w.Goblins, w.Spawned, w.Killed, w)
+	return fmt.Sprintf("score %d  lives %d  jewels left %d  level %d\ndwarf (%d, %d)  caught %v  over %v\nkobolds %v  entered %d  killed %d\n%v",
+		h.Ctx.Session.Score, h.Ctx.Session.Lives, w.JewelsLeft, p.Level(), w.Dwarf.X, w.Dwarf.Y, w.Caught, w.Over, w.Kobolds, w.Spawned, w.Killed, w)
 }
 
-// TestGoldenSackDrop digs out under a sack with a goblin coming along the
-// tunnel below, gets clear, lets the sack crush the goblin and burst, then
+// TestGoldenSackDrop digs out under a sack with a kobold coming along the
+// tunnel below, gets clear, lets the sack crush the kobold and burst, then
 // collects the gold.
 func TestGoldenSackDrop(t *testing.T) {
 	h, p := start(t)
@@ -149,11 +149,11 @@ func TestGoldenSackDrop(t *testing.T) {
 		t.Fatal(err)
 	}
 	tuning := config.BaseTuning
-	tuning.GoblinTotal, tuning.TrollAfterTicks = 2, -1
-	tuning.GoblinSpawnTicks = 100 * config.TPS
+	tuning.KoboldTotal, tuning.GoblinAfterTicks = 2, -1
+	tuning.KoboldSpawnTicks = 100 * config.TPS
 	p.world = world.New(h.Ctx.Session, l, tuning, h.Ctx.RNG)
 	w := p.World()
-	w.Goblins = []world.Goblin{{X: 1 * config.CellSize, Y: 7 * config.CellSize}}
+	w.Kobolds = []world.Kobold{{X: 1 * config.CellSize, Y: 7 * config.CellSize}}
 	w.Spawned = 1
 
 	walk(h, p, ebiten.KeyArrowUp, 2)
@@ -166,7 +166,7 @@ func TestGoldenSackDrop(t *testing.T) {
 		t.Fatalf("killed %d, gold %v:\n%v", w.Killed, w.Gold, w)
 	}
 	walk(h, p, ebiten.KeyArrowLeft, 3)
-	if h.Ctx.Session.Score != config.GoblinPoints+config.GoldPoints {
+	if h.Ctx.Session.Score != config.KoboldPoints+config.GoldPoints {
 		t.Errorf("score %d", h.Ctx.Session.Score)
 	}
 	scenetest.Golden(t, "sackdrop", summary(h, p))
@@ -227,7 +227,7 @@ func TestAGameRunsThroughEveryLevelAtEachSkill(t *testing.T) {
 func TestGoldenSackPush(t *testing.T) {
 	h, p := start(t)
 	w := p.World()
-	w.Tuning.GoblinTotal = 0
+	w.Tuning.KoboldTotal = 0
 	walk(h, p, ebiten.KeyArrowLeft, 5)
 	walk(h, p, ebiten.KeyArrowDown, 1)
 	// Pushing is at half walking speed, so this is two cells.
@@ -239,7 +239,7 @@ func TestGoldenSackPush(t *testing.T) {
 }
 
 // TestGoldenChase walks the open tunnel, fires, then stands still until the
-// goblins have taken every life.
+// kobolds have taken every life.
 func TestGoldenChase(t *testing.T) {
 	h, p := start(t)
 	walk(h, p, ebiten.KeyArrowRight, 3)
@@ -262,7 +262,7 @@ func TestSpaceFires(t *testing.T) {
 func TestCaughtRespawnsAfterAPause(t *testing.T) {
 	h, p := start(t)
 	w := p.World()
-	w.Goblins = append(w.Goblins, world.Goblin{X: w.Dwarf.X, Y: w.Dwarf.Y})
+	w.Kobolds = append(w.Kobolds, world.Kobold{X: w.Dwarf.X, Y: w.Dwarf.Y})
 	h.Ticks(1)
 	if !w.Caught || h.Ctx.Session.Lives != config.StartLives-1 {
 		t.Fatalf("caught %v, lives %d", w.Caught, h.Ctx.Session.Lives)
@@ -326,7 +326,7 @@ func TestSprites(t *testing.T) {
 	if size["shot"] != config.ShotSize {
 		t.Errorf("sprite %q is not %d square", "shot", config.ShotSize)
 	}
-	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "dwarf_dig", "goblin", "goblin_scared", "troll", "troll_scared", "mushroom", "sack", "gold", "headstone"} {
+	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "dwarf_dig", "kobold", "kobold_scared", "goblin", "goblin_scared", "mushroom", "sack", "gold", "headstone"} {
 		if size[name] != config.CellSize {
 			t.Errorf("sprite %q is not %d square", name, config.CellSize)
 		}
@@ -336,7 +336,7 @@ func TestSprites(t *testing.T) {
 func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
 	h, p := start(t)
 	w := p.World()
-	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	w.Kobolds = []world.Kobold{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
 	h.Ticks(1)
 	if !w.Caught || p.headstone() {
 		t.Fatalf("caught %v, headstone %v", w.Caught, p.headstone())
@@ -348,11 +348,11 @@ func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
 	if drop := p.headstoneDrop(config.CellSize); drop <= 0 || drop > config.CellSize {
 		t.Errorf("drop %d as it starts to rise", drop)
 	}
-	if !p.buried(w.Goblins[0]) {
-		t.Error("the goblin can still be seen at the headstone")
+	if !p.buried(w.Kobolds[0]) {
+		t.Error("the kobold can still be seen at the headstone")
 	}
-	if far := (world.Goblin{X: w.Dwarf.X + config.CellSize, Y: w.Dwarf.Y}); p.buried(far) {
-		t.Error("a goblin in the next cell was hidden")
+	if far := (world.Kobold{X: w.Dwarf.X + config.CellSize, Y: w.Dwarf.Y}); p.buried(far) {
+		t.Error("a kobold in the next cell was hidden")
 	}
 	h.Ticks(config.HeadstoneRiseTicks)
 	if drop := p.headstoneDrop(config.CellSize); drop != 0 {
@@ -388,7 +388,7 @@ func TestDyingStopsTheMusicForTheMarchThenTheThemeReturns(t *testing.T) {
 	synth := audio.NewSynth(config.Chip4)
 	h.Ctx.Audio = synth
 	w := p.World()
-	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	w.Kobolds = []world.Kobold{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
 	h.Ticks(1)
 	if !w.Caught || synth.Tune() != FuneralTune {
 		t.Errorf("caught %v, tune %v", w.Caught, synth.Tune())
@@ -406,7 +406,7 @@ func TestDyingStopsTheMusicForTheMarchThenTheThemeReturns(t *testing.T) {
 func TestTheHeadstoneFlashesOnlyAfterTheMarch(t *testing.T) {
 	h, p := start(t)
 	w := p.World()
-	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	w.Kobolds = []world.Kobold{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
 	h.Ticks(config.CaughtTicks - config.HeadstoneFlashTicks)
 	if !p.headstoneShown() {
 		t.Error("the headstone flashed before the march ended")

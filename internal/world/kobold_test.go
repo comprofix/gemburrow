@@ -19,17 +19,17 @@ func corridor(cells map[[2]int]byte, y, x0, x1 int) map[[2]int]byte {
 	return cells
 }
 
-func TestWalkingGoblinStepsExtraAndStaysOnTheGrid(t *testing.T) {
+func TestWalkingKoboldStepsExtraAndStaysOnTheGrid(t *testing.T) {
 	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 3}: config.LevelDwarf}, 3, 1, 12))
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
-	w.Tuning.GoblinExtraOneIn = 2
-	addGoblin(w, 12, 3)
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks = -1, 1000*config.TPS
+	w.Tuning.KoboldExtraOneIn = 2
+	addKobold(w, 12, 3)
 	ticks := 0
-	for w.Goblins[0].X > 6*cell {
+	for w.Kobolds[0].X > 6*cell {
 		w.Update(None, false)
 		ticks++
-		if w.Goblins[0].Y != 3*cell {
-			t.Fatalf("left its row: %+v", w.Goblins[0])
+		if w.Kobolds[0].Y != 3*cell {
+			t.Fatalf("left its row: %+v", w.Kobolds[0])
 		}
 	}
 	if ticks >= 6*cell {
@@ -37,99 +37,99 @@ func TestWalkingGoblinStepsExtraAndStaysOnTheGrid(t *testing.T) {
 	}
 }
 
-// addGoblin puts a goblin on cell (x, y), counted as having entered.
-func addGoblin(w *World, x, y int) {
-	w.Goblins = append(w.Goblins, Goblin{X: x * cell, Y: y * cell})
+// addKobold puts a kobold on cell (x, y), counted as having entered.
+func addKobold(w *World, x, y int) {
+	w.Kobolds = append(w.Kobolds, Kobold{X: x * cell, Y: y * cell})
 	w.Spawned++
 }
 
-func TestGoblinsEnterInTurnUpToTheLimits(t *testing.T) {
+func TestKoboldsEnterInTurnUpToTheLimits(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.GoblinsAtOnce = 2
-	w.Tuning.GoblinTotal = 3
-	wait := w.Tuning.GoblinSpawnTicks
+	w.Tuning.KoboldsAtOnce = 2
+	w.Tuning.KoboldTotal = 3
+	wait := w.Tuning.KoboldSpawnTicks
 
 	run(w, None, wait)
-	if len(w.Goblins) != 0 {
-		t.Errorf("%d goblins before the first was due", len(w.Goblins))
+	if len(w.Kobolds) != 0 {
+		t.Errorf("%d kobolds before the first was due", len(w.Kobolds))
 	}
 	run(w, None, 1)
-	if len(w.Goblins) != 1 {
-		t.Fatalf("%d goblins when the first was due", len(w.Goblins))
+	if len(w.Kobolds) != 1 {
+		t.Fatalf("%d kobolds when the first was due", len(w.Kobolds))
 	}
 	run(w, None, 3*(wait+1))
-	if len(w.Goblins) != 2 || w.Spawned != 2 {
-		t.Errorf("%d on the field and %d entered, want the limit of 2", len(w.Goblins), w.Spawned)
+	if len(w.Kobolds) != 2 || w.Spawned != 2 {
+		t.Errorf("%d on the field and %d entered, want the limit of 2", len(w.Kobolds), w.Spawned)
 	}
-	w.Goblins = w.Goblins[:1]
+	w.Kobolds = w.Kobolds[:1]
 	run(w, None, 3*(wait+1))
 	if w.Spawned != 3 {
 		t.Errorf("%d entered, want all 3", w.Spawned)
 	}
-	w.Goblins = w.Goblins[:0]
+	w.Kobolds = w.Kobolds[:0]
 	run(w, None, 3*(wait+1))
-	if w.Spawned != 3 || len(w.Goblins) != 0 {
+	if w.Spawned != 3 || len(w.Kobolds) != 0 {
 		t.Errorf("%d entered past the total of 3", w.Spawned)
 	}
 }
 
-func TestGoblinWaitsWhileTheDwarfIsAtTheEntrance(t *testing.T) {
+func TestKoboldWaitsWhileTheDwarfIsAtTheEntrance(t *testing.T) {
 	spawn := [2]int{config.FieldCols - 1, config.FieldRows - 2}
 	w, _ := newWorld(t, map[[2]int]byte{{spawn[0] - 1, spawn[1]}: config.LevelDwarf})
-	run(w, None, 2*w.Tuning.GoblinSpawnTicks)
-	if len(w.Goblins) != 0 {
-		t.Error("a goblin entered beside the dwarf")
+	run(w, None, 2*w.Tuning.KoboldSpawnTicks)
+	if len(w.Kobolds) != 0 {
+		t.Error("a kobold entered beside the dwarf")
 	}
 }
 
-func TestGoblinChasesAlongTheTunnel(t *testing.T) {
+func TestKoboldChasesAlongTheTunnel(t *testing.T) {
 	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, 5))
-	addGoblin(w, 5, 0)
-	run(w, None, cell/w.Tuning.GoblinSpeed)
-	if g := w.Goblins[0]; g.X != 4*cell || g.Y != 0 || !g.FacesLeft {
-		t.Errorf("goblin at (%d, %d), facing left %v", g.X, g.Y, g.FacesLeft)
+	addKobold(w, 5, 0)
+	run(w, None, cell/w.Tuning.KoboldSpeed)
+	if g := w.Kobolds[0]; g.X != 4*cell || g.Y != 0 || !g.FacesLeft {
+		t.Errorf("kobold at (%d, %d), facing left %v", g.X, g.Y, g.FacesLeft)
 	}
 }
 
-func TestGoblinTakesTheShortWay(t *testing.T) {
+func TestKoboldTakesTheShortWay(t *testing.T) {
 	// Two ways from (3, 2) to the dwarf at (0, 2): straight along the row, or
 	// a long way round by the row above.
 	cells := corridor(map[[2]int]byte{{0, 2}: config.LevelDwarf}, 2, 1, 3)
 	cells = corridor(cells, 1, 0, 3)
 	w, _ := newWorld(t, cells)
-	addGoblin(w, 3, 2)
+	addKobold(w, 3, 2)
 	run(w, None, 1)
-	if m := w.Goblins[0].Moving; m != Left {
+	if m := w.Kobolds[0].Moving; m != Left {
 		t.Errorf("going %v, want left", m)
 	}
 }
 
-func TestGoblinNeverEntersEarth(t *testing.T) {
-	// The dwarf is walled off, so the goblin wanders its short tunnel.
+func TestKoboldNeverEntersEarth(t *testing.T) {
+	// The dwarf is walled off, so the kobold wanders its short tunnel.
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 3, 5, 8)
 	w, _ := newWorld(t, cells)
-	w.Tuning.GoblinTotal = 1
-	w.Tuning.TrollAfterTicks = -1
-	addGoblin(w, 6, 3)
+	w.Tuning.KoboldTotal = 1
+	w.Tuning.GoblinAfterTicks = -1
+	addKobold(w, 6, 3)
 	moved := false
 	for range 500 {
 		w.Update(None, false)
-		g := w.Goblins[0]
+		g := w.Kobolds[0]
 		if g.Y != 3*cell || g.X < 5*cell || g.X > 8*cell {
-			t.Fatalf("goblin left its tunnel: (%d, %d)", g.X, g.Y)
+			t.Fatalf("kobold left its tunnel: (%d, %d)", g.X, g.Y)
 		}
 		moved = moved || g.X != 6*cell
 	}
 	if !moved {
-		t.Error("the goblin never moved")
+		t.Error("the kobold never moved")
 	}
 }
 
-func TestGoblinFollowsNewTunnels(t *testing.T) {
+func TestKoboldFollowsNewTunnels(t *testing.T) {
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 2, 0, 3)
 	w, _ := newWorld(t, cells)
-	addGoblin(w, 3, 2)
-	// Digging down joins the dwarf's cell to the goblin's tunnel.
+	addKobold(w, 3, 2)
+	// Digging down joins the dwarf's cell to the kobold's tunnel.
 	run(w, Down, 2*ticksPerCell-1)
 	w.measure(false)
 	if d := w.dist[2*config.FieldCols+3]; d < 0 {
@@ -141,7 +141,7 @@ func TestCaughtCostsALifeAndRespawnKeepsTheDigging(t *testing.T) {
 	cells := map[[2]int]byte{{3, 3}: config.LevelDwarf}
 	w, s := newWorld(t, cells)
 	run(w, Right, ticksPerCell)
-	addGoblin(w, 4, 3)
+	addKobold(w, 4, 3)
 	if ev := run(w, None, 1); !slices.Contains(ev, DwarfCaught) {
 		t.Fatalf("events %v, want DwarfCaught", ev)
 	}
@@ -157,8 +157,8 @@ func TestCaughtCostsALifeAndRespawnKeepsTheDigging(t *testing.T) {
 	if w.Caught || w.Dwarf.X != 3*cell || w.Dwarf.Y != 3*cell {
 		t.Errorf("after respawn: caught %v at (%d, %d)", w.Caught, w.Dwarf.X, w.Dwarf.Y)
 	}
-	if len(w.Goblins) != 0 || w.Spawned != spawned-1 {
-		t.Errorf("goblins %d, entered %d", len(w.Goblins), w.Spawned)
+	if len(w.Kobolds) != 0 || w.Spawned != spawned-1 {
+		t.Errorf("kobolds %d, entered %d", len(w.Kobolds), w.Spawned)
 	}
 	if w.Earth(4, 3) {
 		t.Error("the tunnel filled in")
@@ -167,7 +167,7 @@ func TestCaughtCostsALifeAndRespawnKeepsTheDigging(t *testing.T) {
 
 func TestNearMissIsNotCaught(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{3, 3}: config.LevelDwarf})
-	w.Goblins = []Goblin{{X: 3*cell + cell - 2*config.ContactInset, Y: 3 * cell}}
+	w.Kobolds = []Kobold{{X: 3*cell + cell - 2*config.ContactInset, Y: 3 * cell}}
 	w.checkCaught()
 	if w.Caught {
 		t.Error("caught by boxes that only touch inside the inset")
@@ -177,7 +177,7 @@ func TestNearMissIsNotCaught(t *testing.T) {
 func TestLastLifeEndsTheGame(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{3, 3}: config.LevelDwarf})
 	s.Lives = 1
-	addGoblin(w, 3, 3)
+	addKobold(w, 3, 3)
 	run(w, None, 1)
 	if !w.Over || s.Lives != 0 {
 		t.Errorf("over %v, lives %d", w.Over, s.Lives)
@@ -233,26 +233,26 @@ func TestShotMustRecharge(t *testing.T) {
 	}
 }
 
-func TestShotDestroysAGoblinAndScores(t *testing.T) {
+func TestShotDestroysAKoboldAndScores(t *testing.T) {
 	w, s := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, 6))
-	addGoblin(w, 6, 0)
+	addKobold(w, 6, 0)
 	w.Update(None, true)
 	ev := run(w, None, 5*cell/config.ShotSpeed)
-	if !slices.Contains(ev, GoblinShot) {
-		t.Fatalf("events %v, want GoblinShot", ev)
+	if !slices.Contains(ev, KoboldShot) {
+		t.Fatalf("events %v, want KoboldShot", ev)
 	}
-	if len(w.Goblins) != 0 || w.Shot != nil || w.Killed != 1 {
-		t.Errorf("goblins %d, shot %v, killed %d", len(w.Goblins), w.Shot, w.Killed)
+	if len(w.Kobolds) != 0 || w.Shot != nil || w.Killed != 1 {
+		t.Errorf("kobolds %d, shot %v, killed %d", len(w.Kobolds), w.Shot, w.Killed)
 	}
-	if s.Score != config.GoblinPoints {
+	if s.Score != config.KoboldPoints {
 		t.Errorf("score %d", s.Score)
 	}
 }
 
-func TestShootingEveryGoblinClearsTheLevel(t *testing.T) {
+func TestShootingEveryKoboldClearsTheLevel(t *testing.T) {
 	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, 6))
-	w.Tuning.GoblinTotal = 1
-	addGoblin(w, 6, 0)
+	w.Tuning.KoboldTotal = 1
+	addKobold(w, 6, 0)
 	w.Update(None, true)
 	if ev := run(w, None, 5*cell/config.ShotSpeed); !slices.Contains(ev, LevelCleared) {
 		t.Errorf("events %v, want LevelCleared", ev)
@@ -262,9 +262,9 @@ func TestShootingEveryGoblinClearsTheLevel(t *testing.T) {
 	}
 }
 
-func TestNoGoblinsDoesNotClearTheLevel(t *testing.T) {
+func TestNoKoboldsDoesNotClearTheLevel(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.GoblinTotal = 0
+	w.Tuning.KoboldTotal = 0
 	run(w, None, 5)
 	if w.Cleared() {
 		t.Error("cleared with jewels left")
@@ -292,9 +292,9 @@ func TestSameSeedSameChase(t *testing.T) {
 	play := func() (int, int) {
 		cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 4, 0, config.FieldCols-1)
 		w, _ := newWorld(t, cells)
-		addGoblin(w, 9, 4)
+		addKobold(w, 9, 4)
 		run(w, None, 400)
-		return w.Goblins[0].X, w.Goblins[0].Y
+		return w.Kobolds[0].X, w.Kobolds[0].Y
 	}
 	ax, ay := play()
 	bx, by := play()
@@ -304,17 +304,17 @@ func TestSameSeedSameChase(t *testing.T) {
 }
 
 // chaseWorld is a level with an open row to the mushroom's corner, its one
-// goblin entered, and the dwarf at the row's other end.
+// kobold entered, and the dwarf at the row's other end.
 func chaseWorld(t *testing.T) (*World, *session.Session) {
 	t.Helper()
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
 	w, s := newWorld(t, cells)
-	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks, w.spawnWait = -1, 0, 0
-	w.Tuning.GoblinTotal = 1
+	w.Tuning.GoblinAfterTicks, w.Tuning.KoboldSpawnTicks, w.spawnWait = -1, 0, 0
+	w.Tuning.KoboldTotal = 1
 	return w, s
 }
 
-func TestTheMushroomAppearsOnceAllGoblinsHaveEntered(t *testing.T) {
+func TestTheMushroomAppearsOnceAllKoboldsHaveEntered(t *testing.T) {
 	w, _ := chaseWorld(t)
 	if w.Mushroom {
 		t.Fatal("showing from the start")
@@ -340,34 +340,34 @@ func TestTakingTheMushroomScoresAndStartsTheChase(t *testing.T) {
 	}
 }
 
-func TestEatingGoblinsDoublesTheScoreAndTheyAreReplaced(t *testing.T) {
+func TestEatingKoboldsDoublesTheScoreAndTheyAreReplaced(t *testing.T) {
 	w, s := chaseWorld(t)
-	w.Tuning.GoblinTotal, w.Spawned = 10, 10
+	w.Tuning.KoboldTotal, w.Spawned = 10, 10
 	w.Chase, w.eatPoints = 1000, config.EatPoints
 	for range 3 {
-		w.Goblins = []Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+		w.Kobolds = []Kobold{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
 		w.checkCaught()
 		if w.Caught {
 			t.Fatal("caught in a chase")
 		}
 	}
-	if want := 200 + 400 + 800; s.Score != want || w.Killed != 3 || w.Tuning.GoblinTotal != 13 {
-		t.Errorf("score %d, want %d; killed %d, total %d", s.Score, want, w.Killed, w.Tuning.GoblinTotal)
+	if want := 200 + 400 + 800; s.Score != want || w.Killed != 3 || w.Tuning.KoboldTotal != 13 {
+		t.Errorf("score %d, want %d; killed %d, total %d", s.Score, want, w.Killed, w.Tuning.KoboldTotal)
 	}
 }
 
-func TestGoblinsFleeAndNoneEnterInAChase(t *testing.T) {
+func TestKoboldsFleeAndNoneEnterInAChase(t *testing.T) {
 	w, _ := chaseWorld(t)
-	w.Tuning.GoblinTotal = 5
+	w.Tuning.KoboldTotal = 5
 	w.Spawned = 1
-	addGoblin(w, 6, 0)
+	addKobold(w, 6, 0)
 	w.Chase = 1000
 	run(w, None, cell)
-	if g := w.Goblins[0]; g.X <= 6*cell {
+	if g := w.Kobolds[0]; g.X <= 6*cell {
 		t.Errorf("came nearer: %+v", g)
 	}
-	if len(w.Goblins) != 1 || w.Spawned != 2 {
-		t.Errorf("a goblin entered: %d, %d", len(w.Goblins), w.Spawned)
+	if len(w.Kobolds) != 1 || w.Spawned != 2 {
+		t.Errorf("a kobold entered: %d, %d", len(w.Kobolds), w.Spawned)
 	}
 }
 

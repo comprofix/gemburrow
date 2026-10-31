@@ -68,18 +68,18 @@ const (
 	JewelRun
 	LevelCleared
 	ShotFired
-	GoblinShot
+	KoboldShot
 	DwarfCaught
 	ExtraLife
 	SackWobbling
 	SackPushed
 	SackLanded
 	SackBurst
-	GoblinCrushed
+	KoboldCrushed
 	GoldTaken
 	MushroomAppeared
 	MushroomTaken
-	GoblinEaten
+	KoboldEaten
 	ChaseOver
 )
 
@@ -87,7 +87,7 @@ const (
 type Level struct {
 	earth, jewels  []bool
 	startX, startY int // the dwarf's start, in cells
-	spawnX, spawnY int // where goblins enter, in cells
+	spawnX, spawnY int // where kobolds enter, in cells
 	sacks          [][2]int
 }
 
@@ -132,7 +132,7 @@ func Parse(rows []string) (*Level, error) {
 		return nil, fmt.Errorf("world: level has %d dwarf starts, want 1", dwarves)
 	}
 	if spawns != 1 {
-		return nil, fmt.Errorf("world: level has %d goblin spawns, want 1", spawns)
+		return nil, fmt.Errorf("world: level has %d kobold spawns, want 1", spawns)
 	}
 	if jewels == 0 {
 		return nil, errors.New("world: level has no jewels")
@@ -150,15 +150,15 @@ type Dwarf struct {
 	Digging   bool // cutting into earth, until next centred
 }
 
-// Goblin is a hunter in the tunnels. X and Y are its top-left corner.
-type Goblin struct {
+// Kobold is a hunter in the tunnels. X and Y are its top-left corner.
+type Kobold struct {
 	X, Y      int
 	Moving    Dir
 	FacesLeft bool
-	Troll     int  // ticks left as a cave troll, which can cut through earth
+	Goblin    int  // ticks left as a goblin, which can cut through earth
 	Pushing   bool // pushing a sack, at its speed, until next centred
 
-	impatience int  // ticks spent crossing other goblins or stuck on a sack
+	impatience int  // ticks spent crossing other kobolds or stuck on a sack
 	stuck      bool // a sack stopped it this tick
 }
 
@@ -200,19 +200,19 @@ type World struct {
 	Tuning config.Tuning
 
 	Dwarf       Dwarf
-	Goblins     []Goblin
+	Kobolds     []Kobold
 	Sacks       []Sack
 	Gold        []Gold
 	Shot        *Shot // nil when none is in flight
 	Recharge    int   // ticks until the dwarf can fire again
 	JewelsLeft  int
 	JewelsTaken int
-	Spawned     int // goblins that have entered, less any sent back by Respawn
+	Spawned     int // kobolds that have entered, less any sent back by Respawn
 	Killed      int
 	Caught      bool // the dwarf was caught; nothing moves until Respawn
 	Over        bool // caught with no lives left
 	Mushroom    bool // the mushroom is showing (DESIGN §6)
-	Chase       int  // ticks left of the chase, when goblins flee and can be eaten
+	Chase       int  // ticks left of the chase, when kobolds flee and can be eaten
 
 	level        *Level
 	session      *session.Session
@@ -225,7 +225,7 @@ type World struct {
 	jewelRun     int  // jewels taken in the current run
 	jewelRunWait int  // ticks left to take the next one
 	mushroomDone bool // the level's one mushroom has appeared
-	eatPoints    int  // what the next goblin eaten scores
+	eatPoints    int  // what the next kobold eaten scores
 	events       []Event
 	dist         []int // scratch: tunnel distance from the dwarf
 	queue        []int // scratch: the breadth-first search's queue
@@ -240,7 +240,7 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		rng:       rng,
 		earth:     append([]bool(nil), l.earth...),
 		jewels:    append([]bool(nil), l.jewels...),
-		spawnWait: t.GoblinSpawnTicks,
+		spawnWait: t.KoboldSpawnTicks,
 		dist:      make([]int, len(l.earth)),
 	}
 	w.placeDwarf()
@@ -266,7 +266,7 @@ func (w *World) Earth(x, y int) bool { return w.earth[y*config.FieldCols+x] }
 func (w *World) Jewel(x, y int) bool { return w.jewels[y*config.FieldCols+x] }
 
 // Cleared reports whether the level is finished: every jewel taken, or every
-// goblin destroyed (DESIGN D5).
+// kobold destroyed (DESIGN D5).
 func (w *World) Cleared() bool { return w.cleared }
 
 // Update advances one tick with dir pushed and fire pressed, and returns what
@@ -288,8 +288,8 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 	}
 	w.spawn()
 	w.updateChase()
-	for i := range w.Goblins {
-		w.moveGoblin(&w.Goblins[i])
+	for i := range w.Kobolds {
+		w.moveKobold(&w.Kobolds[i])
 	}
 	w.shotHits()
 	w.moveSacks()
@@ -303,7 +303,7 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 
 // checkCleared finishes the level if its goal has been met.
 func (w *World) checkCleared() bool {
-	allShot := w.Tuning.GoblinTotal > 0 && w.Killed >= w.Tuning.GoblinTotal
+	allShot := w.Tuning.KoboldTotal > 0 && w.Killed >= w.Tuning.KoboldTotal
 	if w.JewelsLeft == 0 || allShot {
 		w.cleared = true
 		w.events = append(w.events, LevelCleared)
@@ -419,7 +419,7 @@ func (w *World) fire() {
 }
 
 // moveShot flies the shot one tick. It ends at earth or the field's edge, or
-// on the first goblin it meets.
+// on the first kobold it meets.
 func (w *World) moveShot() {
 	s := w.Shot
 	if s == nil {
@@ -436,31 +436,31 @@ func (w *World) moveShot() {
 	w.shotHits()
 }
 
-// shotHits ends the shot on any goblin it now touches. It is also run after
-// the goblins move, so that one can't step through the shot.
+// shotHits ends the shot on any kobold it now touches. It is also run after
+// the kobolds move, so that one can't step through the shot.
 func (w *World) shotHits() {
 	s := w.Shot
 	if s == nil {
 		return
 	}
-	for i := range w.Goblins {
-		g := &w.Goblins[i]
+	for i := range w.Kobolds {
+		g := &w.Kobolds[i]
 		if s.X >= g.X && s.X < g.X+config.CellSize && s.Y >= g.Y && s.Y < g.Y+config.CellSize {
-			w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
+			w.Kobolds = append(w.Kobolds[:i], w.Kobolds[i+1:]...)
 			w.Shot = nil
 			w.killed()
-			w.addScore(config.GoblinPoints)
-			w.events = append(w.events, GoblinShot)
+			w.addScore(config.KoboldPoints)
+			w.events = append(w.events, KoboldShot)
 			return
 		}
 	}
 }
 
-// spawn brings in the next goblin when it is due, room is left on the field,
+// spawn brings in the next kobold when it is due, room is left on the field,
 // and the dwarf is not standing by the entrance.
 func (w *World) spawn() {
 	t := &w.Tuning
-	if w.Chase > 0 || w.Spawned >= t.GoblinTotal || len(w.Goblins) >= t.GoblinsAtOnce {
+	if w.Chase > 0 || w.Spawned >= t.KoboldTotal || len(w.Kobolds) >= t.KoboldsAtOnce {
 		return
 	}
 	if w.spawnWait > 0 {
@@ -471,9 +471,9 @@ func (w *World) spawn() {
 	if abs(x-w.level.spawnX)+abs(y-w.level.spawnY) <= config.SpawnClearCells {
 		return
 	}
-	w.Goblins = append(w.Goblins, Goblin{X: w.level.spawnX * config.CellSize, Y: w.level.spawnY * config.CellSize})
+	w.Kobolds = append(w.Kobolds, Kobold{X: w.level.spawnX * config.CellSize, Y: w.level.spawnY * config.CellSize})
 	w.Spawned++
-	w.spawnWait = t.GoblinSpawnTicks
+	w.spawnWait = t.KoboldSpawnTicks
 }
 
 func abs(v int) int {
@@ -483,26 +483,26 @@ func abs(v int) int {
 	return v
 }
 
-// moveGoblin moves a goblin, choosing its way each time it is centred on a
-// cell. A cell of earth it reaches, as a troll or just after being one, is
+// moveKobold moves a kobold, choosing its way each time it is centred on a
+// cell. A cell of earth it reaches, as a goblin or just after being one, is
 // dug out, which can bring down a sack above it. A walker pushes a sack it
-// walks into sideways; a troll destroys any sack it touches, and eats any
-// jewel it reaches (DESIGN §6). Any goblin takes gold it reaches. No one scores
+// walks into sideways; a goblin destroys any sack it touches, and eats any
+// jewel it reaches (DESIGN §6). Any kobold takes gold it reaches. No one scores
 // for these.
-func (w *World) moveGoblin(g *Goblin) {
-	if g.Troll > 0 {
-		if g.Troll--; g.Troll == 0 {
+func (w *World) moveKobold(g *Kobold) {
+	if g.Goblin > 0 {
+		if g.Goblin--; g.Goblin == 0 {
 			g.impatience = 0
 		}
 	}
 	g.stuck = false
-	steps := w.Tuning.GoblinSpeed
-	if e := w.Tuning.GoblinExtraOneIn; e > 0 && steps > 0 && g.Troll == 0 && w.rng.IntN(e) == 0 {
+	steps := w.Tuning.KoboldSpeed
+	if e := w.Tuning.KoboldExtraOneIn; e > 0 && steps > 0 && g.Goblin == 0 && w.rng.IntN(e) == 0 {
 		steps++
 	}
 	// A pixel at a time, so that no step passes over the centre of a cell.
 	for i := 0; i < max(steps, 1); i++ {
-		w.stepGoblin(g, min(steps, 1))
+		w.stepKobold(g, min(steps, 1))
 		if g.Pushing {
 			return
 		}
@@ -510,33 +510,33 @@ func (w *World) moveGoblin(g *Goblin) {
 	w.growImpatient(g)
 }
 
-// growImpatient turns a goblin into a cave troll once it has crossed other
-// goblins, or been stuck on a sack, for long enough (DESIGN D8).
-func (w *World) growImpatient(g *Goblin) {
-	if g.Troll > 0 || w.Tuning.TrollAfterTicks < 0 {
+// growImpatient turns a kobold into a goblin once it has crossed other
+// kobolds, or been stuck on a sack, for long enough (DESIGN D8).
+func (w *World) growImpatient(g *Kobold) {
+	if g.Goblin > 0 || w.Tuning.GoblinAfterTicks < 0 {
 		return
 	}
 	if g.stuck || w.crossing(g) {
 		g.impatience++
 	}
-	if g.impatience > w.Tuning.TrollAfterTicks {
-		g.Troll, g.impatience = w.Tuning.TrollTicks, 0
+	if g.impatience > w.Tuning.GoblinAfterTicks {
+		g.Goblin, g.impatience = w.Tuning.GoblinTicks, 0
 	}
 }
 
-// crossing reports whether a goblin overlaps another.
-func (w *World) crossing(g *Goblin) bool {
+// crossing reports whether a kobold overlaps another.
+func (w *World) crossing(g *Kobold) bool {
 	reach := config.CellSize - 2*config.ContactInset
-	for i := range w.Goblins {
-		if o := &w.Goblins[i]; o != g && abs(o.X-g.X) < reach && abs(o.Y-g.Y) < reach {
+	for i := range w.Kobolds {
+		if o := &w.Kobolds[i]; o != g && abs(o.X-g.X) < reach && abs(o.Y-g.Y) < reach {
 			return true
 		}
 	}
 	return false
 }
 
-// stepGoblin moves a goblin the given pixels, at most one.
-func (w *World) stepGoblin(g *Goblin, speed int) {
+// stepKobold moves a kobold the given pixels, at most one.
+func (w *World) stepKobold(g *Kobold, speed int) {
 	if centred(g.X, g.Y) {
 		g.Pushing = false
 		g.Moving = w.chooseWay(g)
@@ -546,7 +546,7 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 		case Right:
 			g.FacesLeft = false
 		}
-		if g.Troll == 0 && g.Moving != None {
+		if g.Goblin == 0 && g.Moving != None {
 			enters, pushing := w.meetSack(g.X/config.CellSize, g.Y/config.CellSize, g.Moving)
 			if !enters {
 				g.Moving, g.stuck = None, true
@@ -563,7 +563,7 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 	g.Y += dy * speed
 	cx, cy := (g.X+config.CellSize/2)/config.CellSize, (g.Y+config.CellSize/2)/config.CellSize
 	w.earth[cy*config.FieldCols+cx] = false
-	if g.Troll > 0 {
+	if g.Goblin > 0 {
 		w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
 			return abs(s.X-g.X) < config.CellSize && abs(s.Y-g.Y) < config.CellSize
 		})
@@ -576,11 +576,11 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 }
 
 // chooseWay takes a shortest way to the dwarf, or in a chase the way furthest
-// from it, through the tunnels or, for a troll, through earth too, with ties
-// broken at random. With no way there, the goblin wanders, turning back only
+// from it, through the tunnels or, for a goblin, through earth too, with ties
+// broken at random. With no way there, the kobold wanders, turning back only
 // at a dead end.
-func (w *World) chooseWay(g *Goblin) Dir {
-	digs := g.Troll > 0
+func (w *World) chooseWay(g *Kobold) Dir {
+	digs := g.Goblin > 0
 	w.measure(digs)
 	x, y := g.X/config.CellSize, g.Y/config.CellSize
 	best, ways, choice := -1, 0, None
@@ -625,9 +625,9 @@ func (w *World) chooseWay(g *Goblin) Dir {
 	return choice
 }
 
-// walkable reports whether a goblin can step from cell (x, y) in direction
-// dir: goblins keep to the tunnels unless they dig. A walker can't go up or
-// down through a sack, but may try to push one sideways, and a troll goes
+// walkable reports whether a kobold can step from cell (x, y) in direction
+// dir: kobolds keep to the tunnels unless they dig. A walker can't go up or
+// down through a sack, but may try to push one sideways, and a goblin goes
 // where it likes.
 func (w *World) walkable(x, y int, dir Dir, digs bool) bool {
 	if !inField(x, y, dir) {
@@ -670,11 +670,11 @@ func (w *World) measure(digs bool) {
 	}
 }
 
-// updateChase shows the level's one mushroom once all its goblins have entered,
+// updateChase shows the level's one mushroom once all its kobolds have entered,
 // lets the dwarf collect it, which starts the chase, and runs the chase down
 // (DESIGN §6).
 func (w *World) updateChase() {
-	if !w.mushroomDone && w.Tuning.GoblinTotal > 0 && w.Spawned >= w.Tuning.GoblinTotal {
+	if !w.mushroomDone && w.Tuning.KoboldTotal > 0 && w.Spawned >= w.Tuning.KoboldTotal {
 		w.mushroomDone, w.Mushroom = true, true
 		w.events = append(w.events, MushroomAppeared)
 	}
@@ -692,13 +692,13 @@ func (w *World) updateChase() {
 	}
 }
 
-// checkCaught costs the dwarf a life if a goblin is touching it, or in a chase
-// eats the goblin, for a score that doubles each time. Boxes are inset so that
+// checkCaught costs the dwarf a life if a kobold is touching it, or in a chase
+// eats the kobold, for a score that doubles each time. Boxes are inset so that
 // only a real overlap counts.
 func (w *World) checkCaught() {
 	reach := config.CellSize - 2*config.ContactInset
-	for i := len(w.Goblins) - 1; i >= 0; i-- {
-		g := &w.Goblins[i]
+	for i := len(w.Kobolds) - 1; i >= 0; i-- {
+		g := &w.Kobolds[i]
 		if abs(g.X-w.Dwarf.X) >= reach || abs(g.Y-w.Dwarf.Y) >= reach {
 			continue
 		}
@@ -706,20 +706,20 @@ func (w *World) checkCaught() {
 			w.catchDwarf()
 			return
 		}
-		w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
+		w.Kobolds = append(w.Kobolds[:i], w.Kobolds[i+1:]...)
 		w.killed()
 		w.addScore(w.eatPoints)
 		w.eatPoints *= 2
-		w.events = append(w.events, GoblinEaten)
+		w.events = append(w.events, KoboldEaten)
 	}
 }
 
-// killed counts a goblin destroyed. One destroyed in a chase is replaced by
+// killed counts a kobold destroyed. One destroyed in a chase is replaced by
 // another to come, so a chase can't clear the level (DESIGN §6).
 func (w *World) killed() {
 	w.Killed++
 	if w.Chase > 0 {
-		w.Tuning.GoblinTotal++
+		w.Tuning.KoboldTotal++
 	}
 }
 
@@ -811,7 +811,7 @@ func blocksSack(x, y, nx, sy, dx int) bool {
 
 // pushSack starts or keeps sack s sliding in direction dir, for its next step,
 // and reports whether it can go (DESIGN §6). The edge of the field, the dwarf
-// or a goblin stops it. Earth and jewels don't, and it pushes other sacks
+// or a kobold stops it. Earth and jewels don't, and it pushes other sacks
 // ahead of it unless they can't go. A falling sack ignores the push. A sack
 // stopped on a cell comes to rest, and falls at once with nothing under it.
 func (w *World) pushSack(s *Sack, dir Dir) bool {
@@ -824,8 +824,8 @@ func (w *World) pushSack(s *Sack, dir Dir) bool {
 	dx, _ := dir.delta()
 	nx := s.X + dx*config.SackSlideSpeed
 	can := !blocksSack(w.Dwarf.X, w.Dwarf.Y, nx, s.Y, dx)
-	for i := range w.Goblins {
-		can = can && !blocksSack(w.Goblins[i].X, w.Goblins[i].Y, nx, s.Y, dx)
+	for i := range w.Kobolds {
+		can = can && !blocksSack(w.Kobolds[i].X, w.Kobolds[i].Y, nx, s.Y, dx)
 	}
 	for i := range w.Sacks {
 		o := &w.Sacks[i]
@@ -930,7 +930,7 @@ func (w *World) slide(s *Sack) {
 }
 
 // fall moves a falling sack one step. It destroys any jewel in the cell it is
-// entering, turns back goblins climbing in its column, and goes through other
+// entering, turns back kobolds climbing in its column, and goes through other
 // sacks, destroying those and any gold it is touching where it lands.
 func (w *World) fall(s *Sack) {
 	s.Y += config.SackFallSpeed
@@ -941,8 +941,8 @@ func (w *World) fall(s *Sack) {
 		w.jewels[y*config.FieldCols+x] = false
 		w.JewelsLeft--
 	}
-	for i := range w.Goblins {
-		if g := &w.Goblins[i]; g.X/config.CellSize == x && g.Moving == Up {
+	for i := range w.Kobolds {
+		if g := &w.Kobolds[i]; g.X/config.CellSize == x && g.Moving == Up {
 			g.Moving = Down
 		}
 	}
@@ -968,19 +968,19 @@ func (w *World) fall(s *Sack) {
 	w.events = append(w.events, SackLanded)
 }
 
-// crush destroys the goblins, and catches the dwarf, under a falling sack.
+// crush destroys the kobolds, and catches the dwarf, under a falling sack.
 // Anything above the sack's top is safe.
 func (w *World) crush(s *Sack) {
 	reach := config.CellSize - 2*config.ContactInset
 	touches := func(x, y int) bool {
 		return abs(x-s.X) < reach && abs(y-s.Y) < reach && y >= s.Y
 	}
-	for i := len(w.Goblins) - 1; i >= 0; i-- {
-		if g := &w.Goblins[i]; touches(g.X, g.Y) {
-			w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
+	for i := len(w.Kobolds) - 1; i >= 0; i-- {
+		if g := &w.Kobolds[i]; touches(g.X, g.Y) {
+			w.Kobolds = append(w.Kobolds[:i], w.Kobolds[i+1:]...)
 			w.Killed++
-			w.addScore(config.GoblinPoints)
-			w.events = append(w.events, GoblinCrushed)
+			w.addScore(config.KoboldPoints)
+			w.events = append(w.events, KoboldCrushed)
 		}
 	}
 	if !w.Caught && touches(w.Dwarf.X, w.Dwarf.Y) {
@@ -1010,21 +1010,21 @@ func (w *World) updateGold() {
 }
 
 // Respawn puts the dwarf back at its start after being caught. What it dug
-// and took stays as it is. The goblins on the field go back to wait their turn.
+// and took stays as it is. The kobolds on the field go back to wait their turn.
 // All gold goes, as does any sack on the move, wobbling, or on the dwarf's start.
 func (w *World) Respawn() {
 	w.Gold = w.Gold[:0]
 	w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
 		return s.State != SackResting || (s.X == w.level.startX*config.CellSize && s.Y == w.level.startY*config.CellSize)
 	})
-	w.Spawned -= len(w.Goblins)
-	w.Goblins = w.Goblins[:0]
+	w.Spawned -= len(w.Kobolds)
+	w.Kobolds = w.Kobolds[:0]
 	w.Shot = nil
 	w.Recharge = 0
 	w.Caught = false
 	w.jewelRun, w.jewelRunWait = 0, 0
 	w.Mushroom, w.mushroomDone = false, false
-	w.spawnWait = w.Tuning.GoblinSpawnTicks
+	w.spawnWait = w.Tuning.KoboldSpawnTicks
 	w.placeDwarf()
 }
 

@@ -1,6 +1,6 @@
 score 50  lives 3  jewels left 22  level 1
 dwarf (192, 192)  caught false  over false
-goblins [{433 0 3 true 0 false 0 false}]  entered 1  killed 0
+kobolds [{433 0 3 true 0 false 0 false}]  entered 1  killed 0
 #*###*###======
 #######======##
 #*#####=#=##=##

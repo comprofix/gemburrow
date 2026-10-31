@@ -34,8 +34,8 @@ func TestTheTitleDwarfDigsTheTunnelAsTheyGo(t *testing.T) {
 		if d.x >= 0 && d.x+config.CellSize/2 < config.Modern.ScreenWidth && (d.x+config.CellSize/2)/config.CellSize >= dug {
 			t.Fatalf("tick %d: dwarf at %d outside the %d cells dug", ticks, d.x, dug)
 		}
-		if g := actorOf(t, actors, titleGoblin); g.x >= d.x {
-			t.Fatalf("tick %d: goblin at %d is not behind the dwarf at %d", ticks, g.x, d.x)
+		if g := actorOf(t, actors, titleKobold); g.x >= d.x {
+			t.Fatalf("tick %d: kobold at %d is not behind the dwarf at %d", ticks, g.x, d.x)
 		}
 	}
 	if last != cols {
@@ -49,8 +49,8 @@ func TestTheTitleChaseTurnsAroundAndAllLeaveTheScreen(t *testing.T) {
 	if d := actorOf(t, back, titleDwarf); !d.left || d.scared {
 		t.Errorf("dwarf on the way back: %+v", d)
 	}
-	if g := actorOf(t, back, titleGoblin); !g.left || !g.scared {
-		t.Errorf("goblin on the way back: %+v", g)
+	if g := actorOf(t, back, titleKobold); !g.left || !g.scared {
+		t.Errorf("kobold on the way back: %+v", g)
 	}
 	_, first := titleScene(config.TitlePassTicks - 1)
 	for _, a := range first {

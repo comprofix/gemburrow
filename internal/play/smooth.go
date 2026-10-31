@@ -124,17 +124,17 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 		drawMushroom(at(config.MushroomCol*config.CellSize, config.MushroomRow*config.CellSize), int(p.ticks/jewelTicks))
 	}
 
-	// The goblins and the shot.
-	for i, g := range w.Goblins {
+	// The kobolds and the shot.
+	for i, g := range w.Kobolds {
 		if p.buried(g) {
 			continue
 		}
 		n := at(g.X, g.Y)
 		n.mirror = g.FacesLeft
-		if g.Troll > 0 {
-			drawTroll(n, int(p.ticks/goblinTicks)+i, p.fleeing())
+		if g.Goblin > 0 {
+			drawGoblin(n, int(p.ticks/koboldTicks)+i, p.fleeing())
 		} else {
-			drawGoblin(n, int(p.ticks/goblinTicks)+i, p.fleeing())
+			drawKobold(n, int(p.ticks/koboldTicks)+i, p.fleeing())
 		}
 		if debug.Enabled {
 			debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
@@ -323,7 +323,7 @@ func drawDwarf(n pen, frame, pick int) {
 	}
 }
 
-func drawGoblin(n pen, frame int, afraid bool) {
+func drawKobold(n pen, frame int, afraid bool) {
 	skin, shade, cloth := resurrect64.Emerald, resurrect64.Forest, resurrect64.Grape
 	if afraid {
 		skin, shade, cloth = resurrect64.Lavender, resurrect64.Violet, resurrect64.Grape
@@ -342,9 +342,9 @@ func drawGoblin(n pen, frame int, afraid bool) {
 	n.line(12, 16, 20, 16, 1.2, resurrect64.Ink)
 }
 
-// drawTroll is a goblin swollen into a cave troll (DESIGN D8): a hulking stony
+// drawGoblin is a kobold swollen into a goblin (DESIGN D8): a hulking stony
 // brute that fills its cell, with a heavy brow, tusks and huge clawed hands.
-func drawTroll(n pen, frame int, afraid bool) {
+func drawGoblin(n pen, frame int, afraid bool) {
 	skin, shade, belly := resurrect64.Slate, resurrect64.Charcoal, resurrect64.Sage
 	if afraid {
 		skin, shade, belly = resurrect64.Lavender, resurrect64.Violet, resurrect64.White

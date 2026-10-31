@@ -34,8 +34,8 @@ type titleKind int
 
 const (
 	titleDwarf titleKind = iota
+	titleKobold
 	titleGoblin
-	titleTroll
 )
 
 // titleActor is one of the cavern's characters at a moment of the loop.
@@ -49,7 +49,7 @@ type titleActor struct {
 
 // titleScene is the cavern at a moment, worked out from the ticks alone so that
 // drawing changes nothing: how many of the tunnel's cells are dug, and who is
-// in it. The dwarf first digs across with a goblin and a troll behind them, then
+// in it. The dwarf first digs across with a kobold and a goblin behind them, then
 // chases them back, and so on through the finished tunnel.
 func titleScene(ticks int64) (dug int, actors []titleActor) {
 	pass := ticks / config.TitlePassTicks
@@ -61,8 +61,8 @@ func titleScene(ticks int64) (dug int, actors []titleActor) {
 		// Back again, the other way, with the dwarf last and the others afraid.
 		at := func(behind int) int { return screen - x + behind }
 		return cols, []titleActor{
-			{kind: titleGoblin, x: at(0), left: true, scared: true},
-			{kind: titleTroll, x: at(config.TitleGapPixels), left: true, scared: true},
+			{kind: titleKobold, x: at(0), left: true, scared: true},
+			{kind: titleGoblin, x: at(config.TitleGapPixels), left: true, scared: true},
 			{kind: titleDwarf, x: at(2 * config.TitleGapPixels), left: true},
 		}
 	}
@@ -75,8 +75,8 @@ func titleScene(ticks int64) (dug int, actors []titleActor) {
 		}
 	}
 	return dug, []titleActor{
-		{kind: titleTroll, x: x - 2*config.TitleGapPixels},
-		{kind: titleGoblin, x: x - config.TitleGapPixels},
+		{kind: titleGoblin, x: x - 2*config.TitleGapPixels},
+		{kind: titleKobold, x: x - config.TitleGapPixels},
 		{kind: titleDwarf, x: x, dig: digging && x < screen},
 	}
 }
@@ -161,12 +161,12 @@ func drawTitleSmooth(dst *ebiten.Image, s int, ticks int64) {
 	for i, a := range actors {
 		n := at(a.x, config.TitleTunnelRow*config.CellSize)
 		n.mirror = a.left
-		step := int(ticks/goblinTicks) + i
+		step := int(ticks/koboldTicks) + i
 		switch a.kind {
-		case titleTroll:
-			drawTroll(n, step, a.scared)
 		case titleGoblin:
 			drawGoblin(n, step, a.scared)
+		case titleKobold:
+			drawKobold(n, step, a.scared)
 		default:
 			pick := pickOnBack
 			if a.dig {
@@ -214,10 +214,10 @@ func drawTitlePixel(ctx *scene.Context, dst *ebiten.Image, ticks int64) {
 		switch {
 		case a.kind == titleDwarf && a.dig:
 			name, frame = "dwarf_dig", int(ticks/digTicks)
+		case a.kind == titleKobold:
+			name, frame = "kobold", int(ticks/koboldTicks)+i
 		case a.kind == titleGoblin:
-			name, frame = "goblin", int(ticks/goblinTicks)+i
-		case a.kind == titleTroll:
-			name, frame = "troll", int(ticks/goblinTicks)+i
+			name, frame = "goblin", int(ticks/koboldTicks)+i
 		}
 		if a.scared {
 			name += "_scared"

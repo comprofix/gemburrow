@@ -28,7 +28,7 @@ var Bindings = []input.Binding{{Action: Fire, Keys: []ebiten.Key{ebiten.KeySpace
 // Animation and effects.
 const (
 	jewelTicks  = 20 // ticks between the jewel's frames
-	goblinTicks = 12 // ticks between the goblin's frames
+	koboldTicks = 12 // ticks between the kobold's frames
 	stepPixels  = 8  // pixels the dwarf moves between walking frames
 	flashTicks  = 6  // the caught dwarf flashes at this rate
 	digTicks    = 8  // ticks between the pick-axe's swings
@@ -132,8 +132,8 @@ func (p *Play) Update(ctx *scene.Context) error {
 			p.clear = config.LevelClearTicks
 		case world.ShotFired:
 			ctx.Audio.PlayEffect(Fired)
-		case world.GoblinShot, world.GoblinCrushed:
-			ctx.Audio.PlayEffect(GoblinDown)
+		case world.KoboldShot, world.KoboldCrushed:
+			ctx.Audio.PlayEffect(KoboldDown)
 		case world.SackWobbling:
 			ctx.Audio.PlayEffect(SackShake)
 		case world.SackLanded:
@@ -147,8 +147,8 @@ func (p *Play) Update(ctx *scene.Context) error {
 		case world.MushroomTaken:
 			ctx.Audio.PlayEffect(MushroomTaken)
 			ctx.Audio.PlayTune(ChaseTune)
-		case world.GoblinEaten:
-			ctx.Audio.PlayEffect(GoblinEaten)
+		case world.KoboldEaten:
+			ctx.Audio.PlayEffect(KoboldEaten)
 		case world.ChaseOver:
 			ctx.Audio.PlayTune(BurrowTune)
 		case world.ExtraLife:
@@ -242,20 +242,20 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		sheet.Sprite("mushroom").Draw(dst, 0, float64(config.FieldX+config.MushroomCol*config.CellSize), float64(config.FieldY+config.MushroomRow*config.CellSize), false)
 	}
 
-	// The goblins and the shot.
-	goblin, troll := sheet.Sprite("goblin"), sheet.Sprite("troll")
+	// The kobolds and the shot.
+	kobold, goblin := sheet.Sprite("kobold"), sheet.Sprite("goblin")
 	if p.fleeing() {
-		goblin, troll = sheet.Sprite("goblin_scared"), sheet.Sprite("troll_scared")
+		kobold, goblin = sheet.Sprite("kobold_scared"), sheet.Sprite("goblin_scared")
 	}
-	for i, g := range w.Goblins {
+	for i, g := range w.Kobolds {
 		if p.buried(g) {
 			continue
 		}
-		picture := goblin
-		if g.Troll > 0 {
-			picture = troll
+		picture := kobold
+		if g.Goblin > 0 {
+			picture = goblin
 		}
-		picture.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
+		picture.Draw(dst, int(p.ticks/koboldTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
 		if debug.Enabled {
 			debug.Box(dst, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), config.CellSize, config.CellSize, sc.Highlight)
 		}
@@ -312,15 +312,15 @@ func (p *Play) headstoneDrop(cell int) int {
 	return cell * max(left, 0) / config.HeadstoneRiseTicks
 }
 
-// buried reports whether a goblin is out of sight, gone where the headstone
+// buried reports whether a kobold is out of sight, gone where the headstone
 // stands.
-func (p *Play) buried(g world.Goblin) bool {
+func (p *Play) buried(g world.Kobold) bool {
 	d := p.world.Dwarf
 	return p.headstone() && g.X-d.X < config.CellSize && d.X-g.X < config.CellSize &&
 		g.Y-d.Y < config.CellSize && d.Y-g.Y < config.CellSize
 }
 
-// fleeing reports whether goblins are drawn afraid: all through a chase, flashing
+// fleeing reports whether kobolds are drawn afraid: all through a chase, flashing
 // at its start and end (DESIGN §6).
 func (p *Play) fleeing() bool {
 	w := p.world

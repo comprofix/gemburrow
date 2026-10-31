@@ -42,7 +42,7 @@ func newWorld(t *testing.T, cells map[[2]int]byte) (*World, *session.Session) {
 	}
 	s := session.New(config.Skills[0], config.StartLives)
 	tuning := config.BaseTuning
-	tuning.GoblinExtraOneIn = 0 // an exact pace, so that tests can count ticks
+	tuning.KoboldExtraOneIn = 0 // an exact pace, so that tests can count ticks
 	return New(s, l, tuning, rand.New(rand.NewPCG(1, 2))), s
 }
 
@@ -60,9 +60,9 @@ func TestThereAreEightLayouts(t *testing.T) {
 	}
 }
 
-// TestGoblinsCanReachTheDwarfInEveryLevel walks the open tunnels from the
-// entrance, as a goblin that isn't digging would.
-func TestGoblinsCanReachTheDwarfInEveryLevel(t *testing.T) {
+// TestKoboldsCanReachTheDwarfInEveryLevel walks the open tunnels from the
+// entrance, as a kobold that isn't digging would.
+func TestKoboldsCanReachTheDwarfInEveryLevel(t *testing.T) {
 	for i, rows := range config.Levels {
 		l, err := Parse(rows)
 		if err != nil {

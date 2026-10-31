@@ -6,12 +6,12 @@ const (
 	LevelTunnel = '=' // an open tunnel
 	LevelJewel  = '*' // a jewel set in earth
 	LevelDwarf  = 'D' // the dwarf's start, in an open tunnel
-	LevelSpawn  = 'G' // where goblins enter, in an open tunnel
+	LevelSpawn  = 'G' // where kobolds enter, in an open tunnel
 	LevelSack   = '$' // a treasure sack resting in earth
 )
 
 // Levels are the original layouts, FieldRows rows of FieldCols characters
-// (DESIGN D9). Every sack starts on earth, and goblins can reach the dwarf.
+// (DESIGN D9). Every sack starts on earth, and kobolds can reach the dwarf.
 var Levels = [][]string{
 	{
 		"#*###*###=====G",
