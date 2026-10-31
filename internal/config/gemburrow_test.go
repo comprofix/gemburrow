@@ -67,7 +67,7 @@ func TestSkillsOrderTheDifficulty(t *testing.T) {
 		if e.GoblinExtraOneIn <= n.GoblinExtraOneIn || n.GoblinExtraOneIn <= h.GoblinExtraOneIn {
 			t.Errorf("level %d: extra steps %d, %d, %d", level, e.GoblinExtraOneIn, n.GoblinExtraOneIn, h.GoblinExtraOneIn)
 		}
-		if h.DiggerEveryTicks <= 0 || h.GoblinsAtOnce > h.GoblinTotal {
+		if h.TrollAfterTicks < 0 || e.TrollAfterTicks <= n.TrollAfterTicks || h.GoblinsAtOnce > h.GoblinTotal {
 			t.Errorf("level %d: hard %+v", level, h)
 		}
 	}

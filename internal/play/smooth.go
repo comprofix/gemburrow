@@ -123,7 +123,7 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	for i, g := range w.Goblins {
 		n := at(g.X, g.Y)
 		n.mirror = g.FacesLeft
-		drawGoblin(n, int(p.ticks/goblinTicks)+i, g.Digging > 0)
+		drawGoblin(n, int(p.ticks/goblinTicks)+i, g.Troll > 0)
 		if debug.Enabled {
 			debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
 		}

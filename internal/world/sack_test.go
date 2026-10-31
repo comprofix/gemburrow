@@ -7,11 +7,11 @@ import (
 	"github.com/comprofix/gemburrow/internal/config"
 )
 
-func TestDiggerEatsAJewelWithoutScore(t *testing.T) {
+func TestTrollEatsAJewelWithoutScore(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel})
-	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
 	addGoblin(w, 4, 5)
-	w.Goblins[0].Digging = 100
+	w.Goblins[0].Troll = 100
 	jewels := w.JewelsLeft
 	run(w, None, cell/w.Tuning.GoblinSpeed)
 	if w.Jewel(3, 5) || w.JewelsLeft != jewels-1 || s.Score != 0 {
@@ -21,7 +21,7 @@ func TestDiggerEatsAJewelWithoutScore(t *testing.T) {
 
 func TestWalkingGoblinLeavesAJewel(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel, {4, 5}: config.LevelTunnel})
-	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
 	addGoblin(w, 4, 5)
 	run(w, None, 2*cell/w.Tuning.GoblinSpeed)
 	if !w.Jewel(3, 5) {
@@ -194,7 +194,7 @@ func TestFallingSackCrushesAGoblin(t *testing.T) {
 		{0, 0}: config.LevelDwarf, {5, 3}: config.LevelSack,
 		{5, 4}: config.LevelTunnel, {5, 5}: config.LevelTunnel,
 	})
-	w.Tuning.DiggerEveryTicks = 0
+	w.Tuning.TrollAfterTicks = -1
 	w.Tuning.GoblinSpeed = 0 // it stands under the sack
 	w.Goblins = []Goblin{{X: 5 * cell, Y: 5 * cell}}
 	w.Spawned = 1
@@ -219,18 +219,18 @@ func TestFallingSackCatchesTheDwarf(t *testing.T) {
 	}
 }
 
-func TestDiggerCutsThroughEarthThenWalksAgain(t *testing.T) {
+func TestTrollCutsThroughEarthThenWalksAgain(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.DiggerEveryTicks = 0
+	w.Tuning.TrollAfterTicks = -1
 	w.Tuning.GoblinSpawnTicks = 1000 * config.TPS
 	addGoblin(w, 6, 0)
-	w.Goblins[0].Digging = cell / w.Tuning.GoblinSpeed // one cell's worth
+	w.Goblins[0].Troll = cell / w.Tuning.GoblinSpeed // one cell's worth
 	run(w, None, cell/w.Tuning.GoblinSpeed)
-	if g := w.Goblins[0]; g.X != 5*cell || g.Digging != 0 {
-		t.Fatalf("digger %+v", g)
+	if g := w.Goblins[0]; g.X != 5*cell || g.Troll != 0 {
+		t.Fatalf("troll %+v", g)
 	}
 	if w.Earth(5, 0) {
-		t.Error("the digger left earth behind")
+		t.Error("the troll left earth behind")
 	}
 	// A walker again, it has only the cell it dug and the one it came from.
 	for range 8 * cell {
@@ -241,16 +241,53 @@ func TestDiggerCutsThroughEarthThenWalksAgain(t *testing.T) {
 	}
 }
 
-func TestAGoblinTurnsDiggerInTime(t *testing.T) {
+func TestCrossingGoblinsTurnIntoATrollInTime(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	addGoblin(w, config.FieldCols-1, config.FieldRows-2)
-	run(w, None, w.Tuning.DiggerEveryTicks+1)
-	for _, g := range w.Goblins {
-		if g.Digging > 0 {
-			return
-		}
+	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
+	addGoblin(w, 6, 0)
+	addGoblin(w, 6, 0)
+	run(w, None, w.Tuning.TrollAfterTicks)
+	if w.Goblins[0].Troll > 0 {
+		t.Fatal("turned troll too soon")
 	}
-	t.Error("no goblin turned digger when one was due")
+	run(w, None, 1)
+	if w.Goblins[0].Troll != w.Tuning.TrollTicks {
+		t.Errorf("troll %d, want %d", w.Goblins[0].Troll, w.Tuning.TrollTicks)
+	}
+}
+
+func TestALoneGoblinStaysAGoblin(t *testing.T) {
+	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
+	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
+	addGoblin(w, 6, 0)
+	run(w, None, 2*w.Tuning.TrollAfterTicks)
+	if w.Goblins[0].Troll > 0 {
+		t.Error("turned troll with nothing to provoke it")
+	}
+}
+
+func TestATrollShrinksBackAndMustGrowImpatientAgain(t *testing.T) {
+	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
+	w.Tuning.GoblinSpawnTicks, w.Tuning.GoblinSpeed = 1000*config.TPS, 0
+	addGoblin(w, 6, 0)
+	w.Goblins[0].Troll, w.Goblins[0].impatience = 1, 5
+	run(w, None, 1)
+	if g := w.Goblins[0]; g.Troll != 0 || g.impatience != 0 {
+		t.Errorf("after its time %+v", g)
+	}
+}
+
+func TestAGoblinStuckOnASackGrowsImpatient(t *testing.T) {
+	cells := map[[2]int]byte{{0, 0}: config.LevelDwarf, {1, 0}: config.LevelSack, {2, 0}: config.LevelTunnel}
+	w, _ := newWorld(t, cells)
+	w.Tuning.GoblinSpawnTicks = 1000 * config.TPS
+	w.Tuning.TrollAfterTicks = 10
+	w.earth[1] = false // the sack lies in the open, as one pushed there would
+	addGoblin(w, 2, 0)
+	run(w, None, 40)
+	if w.Goblins[0].Troll == 0 {
+		t.Errorf("stayed a goblin: %+v", w.Goblins[0])
+	}
 }
 
 // The tests below state the original's rules, as recorded in DESIGN §6.
@@ -355,7 +392,7 @@ func TestWobblingSackCanBePushedClear(t *testing.T) {
 func TestSackStoppedByAGoblinTurnsBack(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf, {5, 3}: config.LevelSack})
 	w.Sacks[0].State, w.Sacks[0].Slide, w.Sacks[0].X = SackSliding, Right, 5*cell+4
-	w.Tuning.GoblinSpeed, w.Tuning.DiggerEveryTicks = 0, 0
+	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
 	w.Goblins = []Goblin{{X: 6*cell + 5, Y: 3 * cell}}
 	w.Spawned = 1
 	run(w, None, cell)
@@ -369,7 +406,7 @@ func TestWalkingGoblinPushesASackSideways(t *testing.T) {
 	cells[[2]int{4, 3}] = config.LevelSack
 	w, _ := newWorld(t, cells)
 	w.earth[3*config.FieldCols+4] = false
-	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
 	addGoblin(w, 5, 3)
 	ev := run(w, None, cell/config.SackSlideSpeed)
 	if !slices.Contains(ev, SackPushed) {
@@ -390,11 +427,11 @@ func TestWalkingGoblinCantPassASackUpOrDown(t *testing.T) {
 	}
 }
 
-func TestDiggingGoblinDestroysASack(t *testing.T) {
+func TestTrollDestroysASack(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelSack})
-	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
 	addGoblin(w, 4, 5)
-	w.Goblins[0].Digging = 100
+	w.Goblins[0].Troll = 100
 	run(w, None, 2)
 	if len(w.Sacks) != 0 || len(w.Gold) != 0 || s.Score != 0 {
 		t.Errorf("sacks %v, gold %v, score %d", w.Sacks, w.Gold, s.Score)
@@ -403,7 +440,7 @@ func TestDiggingGoblinDestroysASack(t *testing.T) {
 
 func TestGoblinTakesGoldWithoutScore(t *testing.T) {
 	w, s := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf, {6, 3}: config.LevelTunnel})
-	w.Tuning.GoblinSpeed, w.Tuning.DiggerEveryTicks = 0, 0
+	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
 	addGoblin(w, 6, 3)
 	w.Gold = []Gold{{X: 6, Y: 3, Ticks: config.GoldTicks}}
 	run(w, None, 1)
@@ -463,7 +500,7 @@ func TestDwarfAboveAFallingSackIsSafe(t *testing.T) {
 
 func TestGoblinClimbingTurnsBackFromAFallingSack(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf})
-	w.Tuning.DiggerEveryTicks = 0
+	w.Tuning.TrollAfterTicks = -1
 	w.Sacks = []Sack{{X: 7 * cell, Y: 0, State: SackFalling}}
 	w.Goblins = []Goblin{{X: 7 * cell, Y: 6*cell + 2, Moving: Up}}
 	w.Spawned = 1
@@ -490,7 +527,7 @@ func TestBlockedPushDropsAWobblingSackAtOnce(t *testing.T) {
 	w, _ := newWorld(t, map[[2]int]byte{
 		{0, 3}: config.LevelDwarf, {1, 3}: config.LevelSack, {1, 4}: config.LevelTunnel, {2, 3}: config.LevelTunnel,
 	})
-	w.Tuning.GoblinSpeed, w.Tuning.DiggerEveryTicks = 0, 0
+	w.Tuning.GoblinSpeed, w.Tuning.TrollAfterTicks = 0, -1
 	addGoblin(w, 2, 3)
 	run(w, None, 2)
 	w.Update(Right, false)

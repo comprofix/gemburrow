@@ -221,7 +221,7 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	walker, digger := sheet.Sprite("goblin"), sheet.Sprite("goblin_digger")
 	for i, g := range w.Goblins {
 		goblin := walker
-		if g.Digging > 0 {
+		if g.Troll > 0 {
 			goblin = digger
 		}
 		goblin.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)

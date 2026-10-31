@@ -149,8 +149,11 @@ type Goblin struct {
 	X, Y      int
 	Moving    Dir
 	FacesLeft bool
-	Digging   int  // ticks left as a digger, which can cut through earth
+	Troll     int  // ticks left as a cave troll, which can cut through earth
 	Pushing   bool // pushing a sack, at its speed, until next centred
+
+	impatience int  // ticks spent crossing other goblins or stuck on a sack
+	stuck      bool // a sack stopped it this tick
 }
 
 // SackState is what a sack is doing.
@@ -209,7 +212,6 @@ type World struct {
 	earth     []bool
 	jewels    []bool
 	spawnWait int
-	digWait   int
 	pressed   Dir // the direction pushed this tick, for holding up a sack
 	cleared   bool
 	events    []Event
@@ -227,7 +229,6 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		earth:     append([]bool(nil), l.earth...),
 		jewels:    append([]bool(nil), l.jewels...),
 		spawnWait: t.GoblinSpawnTicks,
-		digWait:   t.DiggerEveryTicks,
 		dist:      make([]int, len(l.earth)),
 	}
 	w.placeDwarf()
@@ -273,7 +274,6 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 		return w.events
 	}
 	w.spawn()
-	w.chooseDigger()
 	for i := range w.Goblins {
 		w.moveGoblin(&w.Goblins[i])
 	}
@@ -451,42 +451,21 @@ func abs(v int) int {
 	return v
 }
 
-// chooseDigger turns a walking goblin into a digger for a short time, so that
-// tunnels are never completely safe (DESIGN D8).
-func (w *World) chooseDigger() {
-	if w.Tuning.DiggerEveryTicks <= 0 {
-		return
-	}
-	if w.digWait > 0 {
-		w.digWait--
-		return
-	}
-	ways := 0
-	var chosen *Goblin
-	for i := range w.Goblins {
-		if g := &w.Goblins[i]; g.Digging == 0 {
-			ways++
-			if w.rng.IntN(ways) == 0 {
-				chosen = g
-			}
-		}
-	}
-	if chosen != nil {
-		chosen.Digging = w.Tuning.DiggerTicks
-		w.digWait = w.Tuning.DiggerEveryTicks
-	}
-}
-
 // moveGoblin moves a goblin, choosing its way each time it is centred on a
-// cell. A cell of earth it reaches, as a digger or just after being one, is
+// cell. A cell of earth it reaches, as a troll or just after being one, is
 // dug out, which can bring down a sack above it. A walker pushes a sack it
-// walks into sideways; a digger destroys any sack it touches, and eats any
+// walks into sideways; a troll destroys any sack it touches, and eats any
 // jewel it reaches (DESIGN §6). Any goblin takes gold it reaches. No one scores
 // for these.
 func (w *World) moveGoblin(g *Goblin) {
-	g.Digging = max(g.Digging-1, 0)
+	if g.Troll > 0 {
+		if g.Troll--; g.Troll == 0 {
+			g.impatience = 0
+		}
+	}
+	g.stuck = false
 	steps := w.Tuning.GoblinSpeed
-	if e := w.Tuning.GoblinExtraOneIn; e > 0 && steps > 0 && g.Digging == 0 && w.rng.IntN(e) == 0 {
+	if e := w.Tuning.GoblinExtraOneIn; e > 0 && steps > 0 && g.Troll == 0 && w.rng.IntN(e) == 0 {
 		steps++
 	}
 	// A pixel at a time, so that no step passes over the centre of a cell.
@@ -496,6 +475,32 @@ func (w *World) moveGoblin(g *Goblin) {
 			return
 		}
 	}
+	w.growImpatient(g)
+}
+
+// growImpatient turns a goblin into a cave troll once it has crossed other
+// goblins, or been stuck on a sack, for long enough (DESIGN D8).
+func (w *World) growImpatient(g *Goblin) {
+	if g.Troll > 0 || w.Tuning.TrollAfterTicks < 0 {
+		return
+	}
+	if g.stuck || w.crossing(g) {
+		g.impatience++
+	}
+	if g.impatience > w.Tuning.TrollAfterTicks {
+		g.Troll, g.impatience = w.Tuning.TrollTicks, 0
+	}
+}
+
+// crossing reports whether a goblin overlaps another.
+func (w *World) crossing(g *Goblin) bool {
+	reach := config.CellSize - 2*config.ContactInset
+	for i := range w.Goblins {
+		if o := &w.Goblins[i]; o != g && abs(o.X-g.X) < reach && abs(o.Y-g.Y) < reach {
+			return true
+		}
+	}
+	return false
 }
 
 // stepGoblin moves a goblin the given pixels, at most one.
@@ -509,23 +514,24 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 		case Right:
 			g.FacesLeft = false
 		}
-		if g.Digging == 0 && g.Moving != None {
+		if g.Troll == 0 && g.Moving != None {
 			enters, pushing := w.meetSack(g.X/config.CellSize, g.Y/config.CellSize, g.Moving)
 			if !enters {
-				g.Moving = None
+				g.Moving, g.stuck = None, true
 			}
 			g.Pushing = pushing
 		}
 	}
 	if g.Pushing {
 		speed = w.pusherSpeed(g.X, g.Y, g.Moving)
+		g.stuck = g.stuck || speed == 0
 	}
 	dx, dy := g.Moving.delta()
 	g.X += dx * speed
 	g.Y += dy * speed
 	cx, cy := (g.X+config.CellSize/2)/config.CellSize, (g.Y+config.CellSize/2)/config.CellSize
 	w.earth[cy*config.FieldCols+cx] = false
-	if g.Digging > 0 {
+	if g.Troll > 0 {
 		w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
 			return abs(s.X-g.X) < config.CellSize && abs(s.Y-g.Y) < config.CellSize
 		})
@@ -538,10 +544,10 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 }
 
 // chooseWay takes a shortest way to the dwarf, through the tunnels or, for a
-// digger, through earth too, with ties broken at random. With no way there,
+// troll, through earth too, with ties broken at random. With no way there,
 // the goblin wanders, turning back only at a dead end.
 func (w *World) chooseWay(g *Goblin) Dir {
-	digs := g.Digging > 0
+	digs := g.Troll > 0
 	w.measure(digs)
 	x, y := g.X/config.CellSize, g.Y/config.CellSize
 	best, ways, choice := -1, 0, None
@@ -588,7 +594,7 @@ func (w *World) chooseWay(g *Goblin) Dir {
 
 // walkable reports whether a goblin can step from cell (x, y) in direction
 // dir: goblins keep to the tunnels unless they dig. A walker can't go up or
-// down through a sack, but may try to push one sideways, and a digger goes
+// down through a sack, but may try to push one sideways, and a troll goes
 // where it likes.
 func (w *World) walkable(x, y int, dir Dir, digs bool) bool {
 	if !inField(x, y, dir) {
@@ -940,7 +946,6 @@ func (w *World) Respawn() {
 	w.Recharge = 0
 	w.Caught = false
 	w.spawnWait = w.Tuning.GoblinSpawnTicks
-	w.digWait = w.Tuning.DiggerEveryTicks
 	w.placeDwarf()
 }
 

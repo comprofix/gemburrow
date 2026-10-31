@@ -1,6 +1,6 @@
 score 0  lives 0  jewels left 18  level 1
 dwarf (288, 128)  caught true  over true
-goblins [{288 109 2 true 0 false} {447 0 3 true 0 false}]  entered 2  killed 0
+goblins [{288 109 2 true 0 false 0 false} {447 0 3 true 0 false 0 false}]  entered 2  killed 0
 #*###*###======
 #########=##*##
 #*#####*#=#####

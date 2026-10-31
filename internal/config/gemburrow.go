@@ -64,8 +64,10 @@ type Tuning struct {
 	GoblinsAtOnce     int // the most on the field together
 	GoblinSpawnTicks  int // between goblins entering
 	ShotRechargeTicks int // from firing until the next shot
-	DiggerEveryTicks  int // between a goblin turning digger; 0 means never
-	DiggerTicks       int // how long it stays one (DESIGN D8)
+	// TrollAfterTicks is how long a goblin can cross others or be stuck on a
+	// sack before turning into a cave troll; negative means never (DESIGN D8).
+	TrollAfterTicks int
+	TrollTicks      int // how long it stays one
 }
 
 // The level ramp (DESIGN §5, §11). It stops rising at RampLevels. Counts the
@@ -77,10 +79,6 @@ const (
 	rampMinGoblins    = 1
 	rampMinAtOnce     = 2
 	rampMinExtraOneIn = 2
-	// A goblin turns digger this often on level 1, less rampDiggerFall for
-	// each level after it.
-	rampDiggerEvery = 8 * TPS
-	rampDiggerFall  = 4 * TPS / 9
 )
 
 // originalTicks converts a count of the original's game ticks, of 80 ms at
@@ -104,8 +102,8 @@ func TuningFor(s Skill, level int) Tuning {
 		GoblinsAtOnce:     max(atOnce+s.ExtraAtOnce, rampMinAtOnce),
 		GoblinSpawnTicks:  originalTicks(45-2*l) * s.SpawnPercent / 100,
 		ShotRechargeTicks: originalTicks(60+3*l) * s.RechargePercent / 100,
-		DiggerEveryTicks:  (rampDiggerEvery - (l-1)*rampDiggerFall) * s.DiggerPercent / 100,
-		DiggerTicks:       originalTicks(30 + 2*l),
+		TrollAfterTicks:   originalTicks(max(10-l+s.ExtraPatience, 0)),
+		TrollTicks:        originalTicks(30 + 2*l),
 	}
 }
 

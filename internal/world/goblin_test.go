@@ -20,7 +20,7 @@ func corridor(cells map[[2]int]byte, y, x0, x1 int) map[[2]int]byte {
 
 func TestWalkingGoblinStepsExtraAndStaysOnTheGrid(t *testing.T) {
 	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 3}: config.LevelDwarf}, 3, 1, 12))
-	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks = -1, 1000*config.TPS
 	w.Tuning.GoblinExtraOneIn = 2
 	addGoblin(w, 12, 3)
 	ticks := 0
@@ -108,7 +108,7 @@ func TestGoblinNeverEntersEarth(t *testing.T) {
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 3, 5, 8)
 	w, _ := newWorld(t, cells)
 	w.Tuning.GoblinTotal = 1
-	w.Tuning.DiggerEveryTicks = 0
+	w.Tuning.TrollAfterTicks = -1
 	addGoblin(w, 6, 3)
 	moved := false
 	for range 500 {

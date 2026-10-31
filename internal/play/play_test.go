@@ -148,7 +148,7 @@ func TestGoldenSackDrop(t *testing.T) {
 		t.Fatal(err)
 	}
 	tuning := config.BaseTuning
-	tuning.GoblinTotal, tuning.DiggerEveryTicks = 2, 0
+	tuning.GoblinTotal, tuning.TrollAfterTicks = 2, -1
 	tuning.GoblinSpawnTicks = 100 * config.TPS
 	p.world = world.New(h.Ctx.Session, l, tuning, h.Ctx.RNG)
 	w := p.World()
