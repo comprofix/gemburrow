@@ -100,6 +100,8 @@ const (
 	TankardDelayMinTicks = 30 * TPS
 	TankardDelayMaxTicks = 60 * TPS
 	TankardShowTicks     = 8 * TPS
+	// ExtraLifeMessageTicks is how long the message for an extra life stays up.
+	ExtraLifeMessageTicks = 2 * TPS
 	// ChaseWarnTicks is how long fleeing kobolds flash at the chase's start and end.
 	ChaseWarnTicks = 8 * TPS / 5
 	// The kobolds' smoke and fire, and the puff as they change (DESIGN §7). Each

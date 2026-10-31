@@ -452,3 +452,19 @@ func TestTheThemeLoopsSixteenWholeBars(t *testing.T) {
 		t.Error("the theme does not loop")
 	}
 }
+
+func TestAnExtraLifeShowsAMessageForAWhile(t *testing.T) {
+	h, p := start(t)
+	w := p.World()
+	lives := h.Ctx.Session.Lives
+	x, y := w.Dwarf.X/config.CellSize, w.Dwarf.Y/config.CellSize
+	w.Tankard = world.Pickup{X: x, Y: y, Showing: true, Ticks: 100}
+	h.Ticks(1)
+	if h.Ctx.Session.Lives != lives+1 || p.life != config.ExtraLifeMessageTicks {
+		t.Fatalf("lives %d, message %d", h.Ctx.Session.Lives, p.life)
+	}
+	h.Ticks(config.ExtraLifeMessageTicks)
+	if p.life != 0 {
+		t.Errorf("message %d after its time", p.life)
+	}
+}

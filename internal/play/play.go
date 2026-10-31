@@ -52,6 +52,7 @@ type Play struct {
 	clear  int // ticks left of the level clear banner
 	caught int // ticks left of the pause after being caught
 	dead   int // ticks since being caught
+	life   int // ticks left of the extra life message
 	puffs  []firePuff
 }
 
@@ -95,6 +96,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 		return nil
 	}
 	p.ticks++
+	p.life = max(p.life-1, 0)
 	switch {
 	case p.clear > 0:
 		p.clear--
@@ -158,6 +160,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 			ctx.Audio.PlayTune(BurrowTune)
 		case world.ExtraLife:
 			ctx.Audio.PlayEffect(LifeGained)
+			p.life = config.ExtraLifeMessageTicks
 		case world.DwarfCaught:
 			ctx.Audio.PlayEffect(Caught)
 			ctx.Audio.PlayTune(FuneralTune)
@@ -202,7 +205,7 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	// The HUD (DESIGN §3).
 	ty := (config.HUDHeight - f.Large.LineHeight()) / 2
 	f.Large.DrawShadowed(dst, fmt.Sprintf("SCORE %06d", ctx.Session.Score), config.HUDX, ty, sc.Text, sc.Shadow)
-	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), ty, sc.Text, sc.Shadow)
+	p.drawHUDMiddle(ctx, dst, ty)
 	lives := fmt.Sprintf("LIVES %d", ctx.Session.Lives)
 	f.Large.DrawShadowed(dst, lives, ctx.Preset.ScreenWidth-config.HUDX-f.Large.Width(lives), ty, sc.Text, sc.Shadow)
 	shot := sheet.Sprite("shot")
@@ -354,4 +357,15 @@ func banner(ctx *scene.Context, dst *ebiten.Image, msg string) {
 	sc, f := ctx.Scheme, ctx.Fonts
 	scene.Dim(dst, sc.Shadow, 0.5)
 	ui.TextCentred(dst, f.Large, msg, (ctx.Preset.ScreenHeight-f.Large.LineHeight())/2, sc.Title, sc.Shadow)
+}
+
+// drawHUDMiddle shows the level, or for a while after gaining a life says so
+// instead, where it hides nothing of the field (DESIGN §5).
+func (p *Play) drawHUDMiddle(ctx *scene.Context, dst *ebiten.Image, y int) {
+	sc, f := ctx.Scheme, ctx.Fonts
+	if p.life > 0 {
+		ui.TextCentred(dst, f.Large, "EXTRA LIFE", y, sc.Title, sc.Shadow)
+		return
+	}
+	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), y, sc.Text, sc.Shadow)
 }

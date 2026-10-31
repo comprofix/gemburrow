@@ -13,7 +13,6 @@ import (
 	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
 	"github.com/comprofix/gemburrow/internal/scene"
 	"github.com/comprofix/gemburrow/internal/shapes"
-	"github.com/comprofix/gemburrow/internal/ui"
 	"github.com/comprofix/gemburrow/internal/world"
 )
 
@@ -89,7 +88,7 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	ty := (s*config.HUDHeight - f.Large.LineHeight()) / 2
 	left, right := s*config.HUDX, ctx.Preset.ScreenWidth-s*config.HUDX
 	f.Large.DrawShadowed(dst, fmt.Sprintf("SCORE %06d", ctx.Session.Score), left, ty, sc.Text, sc.Shadow)
-	ui.TextCentred(dst, f.Large, fmt.Sprintf("LEVEL %d", p.level), ty, sc.Text, sc.Shadow)
+	p.drawHUDMiddle(ctx, dst, ty)
 	lives := fmt.Sprintf("LIVES %d", ctx.Session.Lives)
 	f.Large.DrawShadowed(dst, lives, right-f.Large.Width(lives), ty, sc.Text, sc.Shadow)
 	if w.Recharge == 0 {
