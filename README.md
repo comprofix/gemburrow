@@ -2,6 +2,11 @@
 
 Tunnel through the earth, collect jewels and treasure, and outwit the goblins.
 
+You are a dwarf digging through a cavern. Clear every jewel to finish a level,
+drop sacks of gold on the goblins that chase you, and grab the gold before it
+vanishes. There are Easy, Normal and Hard skills, and two looks to switch
+between in Options: Smooth and Modern pixel art.
+
 Created from [gameskeleton](https://github.com/comprofix/gameskeleton) v0.5.1.
 
 ## Download
@@ -13,6 +18,16 @@ Builds for Windows and Linux (64-bit) are on the
 - **Windows:** unzip `gemburrow-vX.Y.Z-windows-amd64.zip` and run `gemburrow.exe`.
 - **Linux:** extract `gemburrow-vX.Y.Z-linux-amd64.tar.gz` and run `./gemburrow`.
   It needs OpenGL, X11 and ALSA, which desktop systems already have.
+
+## Controls
+
+| Action | Keys |
+|---|---|
+| Move and dig | Arrow keys or WASD |
+| Fire | Space |
+| Pause, back | Esc |
+
+The menus also work by mouse. Alt+Enter toggles fullscreen.
 
 ## Requirements
 
