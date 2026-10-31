@@ -150,11 +150,13 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	n := at(d.X, d.Y)
 	n.mirror = d.FacesLeft
 	if p.headstone() {
-		cell := s * config.CellSize
-		stone := n
-		stone.dst = dst.SubImage(image.Rect(int(n.x), int(n.y), int(n.x)+cell, int(n.y)+cell)).(*ebiten.Image)
-		stone.y += float64(p.headstoneDrop(cell))
-		drawHeadstone(stone)
+		if p.headstoneShown() {
+			cell := s * config.CellSize
+			stone := n
+			stone.dst = dst.SubImage(image.Rect(int(n.x), int(n.y), int(n.x)+cell, int(n.y)+cell)).(*ebiten.Image)
+			stone.y += float64(p.headstoneDrop(cell))
+			drawHeadstone(stone)
+		}
 	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		pick := pickOnBack
 		if d.Digging {
@@ -384,7 +386,8 @@ func drawMushroom(n pen, frame int) {
 	n.circle(22, 14, 2.4, resurrect64.Lavender)
 }
 
-// drawHeadstone is the dwarf's grave: a round-topped stone reading RIP, on a
+// drawHeadstone is the dwarf's grave: a round-topped stone reading RIP, with grass
+// around it, on a
 // mound of earth.
 func drawHeadstone(n pen) {
 	n.circle(16, 28, 3.2, resurrect64.Bark)

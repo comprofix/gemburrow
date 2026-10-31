@@ -87,7 +87,7 @@ var (
 
 	// FuneralTune plays once when the dwarf dies: the opening two bars of the
 	// funeral march from Chopin's Piano Sonata No. 2, which is in the public
-	// domain (DESIGN §5, D11). A beat is 30 ticks, so it fills config.CaughtTicks.
+	// domain (DESIGN §5, D11). A beat is 30 ticks, so it lasts 4 seconds.
 	FuneralTune = &audio.Tune{Name: "funeral march", Parts: []audio.Part{
 		{Voice: tuneLead, Notes: audio.Notes(
 			"A#3:30 A#3:22 A#3:8 A#3:30 C#4:22 C4:8",

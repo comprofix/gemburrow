@@ -268,8 +268,12 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	d := w.Dwarf
 	dx, dy := config.FieldX+d.X, config.FieldY+d.Y
 	if p.headstone() {
-		clip := dst.SubImage(image.Rect(dx, dy, dx+config.CellSize, dy+config.CellSize)).(*ebiten.Image)
-		sheet.Sprite("headstone").Draw(clip, 0, float64(dx), float64(dy+p.headstoneDrop(config.CellSize)), false)
+		if !p.headstoneShown() {
+			// Flashing, off.
+		} else {
+			clip := dst.SubImage(image.Rect(dx, dy, dx+config.CellSize, dy+config.CellSize)).(*ebiten.Image)
+			sheet.Sprite("headstone").Draw(clip, 0, float64(dx), float64(dy+p.headstoneDrop(config.CellSize)), false)
+		}
 	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		if d.Digging {
 			sheet.Sprite("dwarf_dig").Draw(dst, int(p.ticks/digTicks), float64(dx), float64(dy), d.FacesLeft)
@@ -292,6 +296,13 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 // headstone reports whether the caught dwarf has given way to its headstone.
 func (p *Play) headstone() bool {
 	return p.world.Caught && p.dead >= config.CaughtFlashTicks
+}
+
+// headstoneShown reports whether the headstone is drawn this tick: it flashes
+// for the end of the pause, before the dwarf reappears (DESIGN §5). The last
+// life's stands to the end.
+func (p *Play) headstoneShown() bool {
+	return p.world.Over || p.caught > config.HeadstoneFlashTicks || (p.ticks/flashTicks)%2 == 0
 }
 
 // headstoneDrop is how far the rising headstone still is below its place, in a

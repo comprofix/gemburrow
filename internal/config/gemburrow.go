@@ -44,12 +44,14 @@ const (
 	// funeral march, for the first
 	// CaughtFlashTicks of which it flashes before its headstone rises from the
 	// ground over HeadstoneRiseTicks, reaching its place at the end of the march's
-	// first bar, and
+	// first bar. It flashes for the last HeadstoneFlashTicks, after the march,
+	// before the dwarf reappears, and
 	// GameOverTicks how long the game over banner stays up.
-	CaughtTicks        = 4 * TPS
-	CaughtFlashTicks   = TPS / 2
-	HeadstoneRiseTicks = 3 * TPS / 2
-	GameOverTicks      = 5 * TPS
+	CaughtTicks         = 4*TPS + HeadstoneFlashTicks
+	HeadstoneFlashTicks = TPS / 2
+	CaughtFlashTicks    = TPS / 2
+	HeadstoneRiseTicks  = 3 * TPS / 2
+	GameOverTicks       = 5 * TPS
 
 	// Sacks and gold (DESIGN §6, D6). The speeds are in pixels per tick, and
 	// must divide CellSize. A sack bursts if it falls more than one cell.

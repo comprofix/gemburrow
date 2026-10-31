@@ -402,3 +402,28 @@ func TestDyingStopsTheMusicForTheMarchThenTheDiggingTuneReturns(t *testing.T) {
 		t.Errorf("after the pause, caught %v, tune %v", w.Caught, synth.Tune())
 	}
 }
+
+func TestTheHeadstoneFlashesOnlyAfterTheMarch(t *testing.T) {
+	h, p := start(t)
+	w := p.World()
+	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	h.Ticks(config.CaughtTicks - config.HeadstoneFlashTicks)
+	if !p.headstoneShown() {
+		t.Error("the headstone flashed before the march ended")
+	}
+	off := false
+	for range config.HeadstoneFlashTicks - 1 {
+		h.Ticks(1)
+		off = off || !p.headstoneShown()
+		if !w.Caught {
+			t.Fatal("the dwarf came back during the flashing")
+		}
+	}
+	if !off {
+		t.Error("the headstone never flashed")
+	}
+	h.Ticks(2)
+	if w.Caught {
+		t.Error("the dwarf did not come back")
+	}
+}
