@@ -35,10 +35,11 @@ var (
 		Voice: audio.Voice{Wave: audio.Noise, Decay: audio.Ticks(16), Release: audio.Ticks(2), Volume: 0.8},
 		Notes: []audio.Note{{Hz: 1200, Dur: audio.Ticks(16)}},
 	}}
-	// Caught is the dwarf caught by a goblin.
-	Caught = &audio.Effect{Name: "caught", Channel: 0, Priority: 5, Part: audio.Part{
-		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(18), Sustain: 0.4, Release: audio.Ticks(8), Volume: 0.8},
-		Notes: audio.Notes("E5:8 C5:8 A4:8 E4:24"),
+	// Caught is the blow as the dwarf dies. It is on the noise channel, to leave
+	// the funeral march's channels alone.
+	Caught = &audio.Effect{Name: "caught", Channel: 3, Priority: 5, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Noise, Decay: audio.Ticks(14), Release: audio.Ticks(2), Volume: 0.8},
+		Notes: []audio.Note{{Hz: 500, Dur: audio.Ticks(14)}},
 	}}
 	// LifeGained is an extra life.
 	LifeGained = &audio.Effect{Name: "extra life", Channel: 0, Priority: 5, Part: audio.Part{
@@ -84,7 +85,7 @@ var (
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ChaseTune, ScoresTune}, Effects: []*audio.Effect{
+var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ChaseTune, FuneralTune, ScoresTune}, Effects: []*audio.Effect{
 	Dig, Jewel, JewelRun, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
 	MushroomUp, MushroomTaken, GoblinEaten,
 }}

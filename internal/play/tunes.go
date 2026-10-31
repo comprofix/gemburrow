@@ -2,7 +2,8 @@ package play
 
 import "github.com/comprofix/gemburrow/internal/audio"
 
-// Voices for the game's tunes, all written for Gem Burrow.
+// Voices for the game's tunes, all written for Gem Burrow except FuneralTune's
+// melody (DESIGN §10, D11).
 var (
 	tuneLead = audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.6, Release: audio.Ticks(3), Volume: 0.7}
 	tunePad  = audio.Voice{Wave: audio.Pulse12, Attack: audio.Ticks(3), Release: audio.Ticks(6), Volume: 0.3}
@@ -82,6 +83,20 @@ var (
 			"B1:20 B2:20 E2:20 E3:20",
 		)},
 		{Voice: tuneBeat, Notes: beat(4, 10)},
+	}}
+
+	// FuneralTune plays once when the dwarf dies: the opening two bars of the
+	// funeral march from Chopin's Piano Sonata No. 2, which is in the public
+	// domain (DESIGN §5, D11). A beat is 30 ticks, so it fills config.CaughtTicks.
+	FuneralTune = &audio.Tune{Name: "funeral march", Parts: []audio.Part{
+		{Voice: tuneLead, Notes: audio.Notes(
+			"A#3:30 A#3:22 A#3:8 A#3:30 C#4:22 C4:8",
+			"C4:22 A#3:8 A#3:22 A3:8 A#3:60",
+		)},
+		{Voice: tuneBass, Notes: audio.Notes(
+			"A#2:30 F#2:30 A#2:30 F#2:30",
+			"A#2:30 F#2:30 A#2:60",
+		)},
 	}}
 
 	// ScoresTune is a short fanfare for the high score screens.

@@ -383,3 +383,14 @@ func TestADeathEndsTheChaseAndTheMushroomReturns(t *testing.T) {
 		t.Errorf("after respawn: done %v, showing %v", w.mushroomDone, w.Mushroom)
 	}
 }
+
+// The play scene plays a tune for each event, so the chase ending must come
+// before the death for the funeral march to be the tune left playing.
+func TestACrushDuringAChaseEndsTheChaseBeforeTheDeath(t *testing.T) {
+	w, _ := chaseWorld(t)
+	w.Chase = 1000
+	w.catchDwarf()
+	if len(w.events) != 2 || w.events[0] != ChaseOver || w.events[1] != DwarfCaught {
+		t.Errorf("events %v", w.events)
+	}
+}

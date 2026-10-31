@@ -10,6 +10,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"github.com/comprofix/gemburrow/internal/audio"
 	"github.com/comprofix/gemburrow/internal/config"
 	"github.com/comprofix/gemburrow/internal/gfx/palettes/resurrect64"
 	"github.com/comprofix/gemburrow/internal/input"
@@ -360,5 +361,44 @@ func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
 	h.Ticks(config.CaughtTicks - config.HeadstoneRiseTicks)
 	if w.Caught || p.headstone() {
 		t.Errorf("after the pause: caught %v, headstone %v", w.Caught, p.headstone())
+	}
+}
+
+func TestTheFuneralMarchFitsThePauseAfterDying(t *testing.T) {
+	pause := audio.Ticks(config.CaughtTicks)
+	for i, part := range FuneralTune.Parts {
+		var sum time.Duration
+		for _, n := range part.Notes {
+			sum += n.Dur
+		}
+		if sum > pause {
+			t.Errorf("part %d lasts %v, longer than the pause of %v", i, sum, pause)
+		}
+	}
+	if FuneralTune.Loop {
+		t.Error("the march loops")
+	}
+	if config.CaughtFlashTicks+config.HeadstoneRiseTicks > config.CaughtTicks || config.GameOverTicks < config.CaughtTicks {
+		t.Error("the headstone or the banner does not fit the pause")
+	}
+}
+
+func TestDyingStopsTheMusicForTheMarchThenTheDiggingTuneReturns(t *testing.T) {
+	h, p := start(t)
+	synth := audio.NewSynth(config.Chip4)
+	h.Ctx.Audio = synth
+	w := p.World()
+	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	h.Ticks(1)
+	if !w.Caught || synth.Tune() != FuneralTune {
+		t.Errorf("caught %v, tune %v", w.Caught, synth.Tune())
+	}
+	h.Ticks(config.CaughtTicks - 1)
+	if synth.Tune() != FuneralTune {
+		t.Errorf("the march was cut off by %v", synth.Tune())
+	}
+	h.Ticks(1)
+	if w.Caught || synth.Tune() != DiggingTune {
+		t.Errorf("after the pause, caught %v, tune %v", w.Caught, synth.Tune())
 	}
 }

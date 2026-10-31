@@ -114,6 +114,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 				ctx.Switch(scene.AfterGame(ctx, s.Skill, s.Score))
 			} else {
 				p.world.Respawn()
+				ctx.Audio.PlayTune(DiggingTune)
 			}
 		}
 		return nil
@@ -154,6 +155,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 			ctx.Audio.PlayEffect(LifeGained)
 		case world.DwarfCaught:
 			ctx.Audio.PlayEffect(Caught)
+			ctx.Audio.PlayTune(FuneralTune)
 			ctx.Shake.Start(shakeTicks, shakePixels)
 			p.dead = 0
 			p.caught = config.CaughtTicks
