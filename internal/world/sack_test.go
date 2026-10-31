@@ -7,6 +7,28 @@ import (
 	"github.com/comprofix/gemburrow/internal/config"
 )
 
+func TestDiggerEatsAJewelWithoutScore(t *testing.T) {
+	w, s := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel})
+	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	addGoblin(w, 4, 5)
+	w.Goblins[0].Digging = 100
+	jewels := w.JewelsLeft
+	run(w, None, cell/w.Tuning.GoblinSpeed)
+	if w.Jewel(3, 5) || w.JewelsLeft != jewels-1 || s.Score != 0 {
+		t.Errorf("jewel %v, left %d of %d, score %d", w.Jewel(3, 5), w.JewelsLeft, jewels, s.Score)
+	}
+}
+
+func TestWalkingGoblinLeavesAJewel(t *testing.T) {
+	w, _ := newWorld(t, map[[2]int]byte{{0, 5}: config.LevelDwarf, {3, 5}: config.LevelJewel, {4, 5}: config.LevelTunnel})
+	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	addGoblin(w, 4, 5)
+	run(w, None, 2*cell/w.Tuning.GoblinSpeed)
+	if !w.Jewel(3, 5) {
+		t.Error("a walking goblin took the jewel")
+	}
+}
+
 // wobbleAndFall is long enough for a sack to wobble and fall n cells.
 func wobbleAndFall(n int) int {
 	return config.SackWobbleTicks + 2 + n*cell/config.SackFallSpeed

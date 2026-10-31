@@ -480,8 +480,9 @@ func (w *World) chooseDigger() {
 // moveGoblin moves a goblin, choosing its way each time it is centred on a
 // cell. A cell of earth it reaches, as a digger or just after being one, is
 // dug out, which can bring down a sack above it. A walker pushes a sack it
-// walks into sideways; a digger destroys any sack it touches (DESIGN §6). Any
-// goblin takes gold it reaches, and no one scores for it.
+// walks into sideways; a digger destroys any sack it touches, and eats any
+// jewel it reaches (DESIGN §6). Any goblin takes gold it reaches. No one scores
+// for these.
 func (w *World) moveGoblin(g *Goblin) {
 	g.Digging = max(g.Digging-1, 0)
 	if centred(g.X, g.Y) {
@@ -514,6 +515,10 @@ func (w *World) moveGoblin(g *Goblin) {
 		w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
 			return abs(s.X-g.X) < config.CellSize && abs(s.Y-g.Y) < config.CellSize
 		})
+		if w.Jewel(cx, cy) {
+			w.jewels[cy*config.FieldCols+cx] = false
+			w.JewelsLeft--
+		}
 	}
 	w.Gold = slices.DeleteFunc(w.Gold, func(gold Gold) bool { return gold.X == cx && gold.Y == cy })
 }
