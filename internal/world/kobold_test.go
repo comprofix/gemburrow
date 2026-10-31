@@ -323,24 +323,29 @@ func quietWorld(t *testing.T) *World {
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
 	w, _ := newWorld(t, cells)
 	w.Tuning.KoboldTotal = 0
-	w.Mushroom.wait = 0
+	w.Mushroom.after = 0
 	return w
 }
 
-func TestTheMushroomIsDueWithinItsDelays(t *testing.T) {
-	for seed := range uint64(50) {
-		w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1))
-		w.rng = rand.New(rand.NewPCG(seed, 1))
-		m := newPickup(w.rng, config.MushroomDelayMinTicks, config.MushroomDelayMaxTicks, config.MushroomShowTicks)
-		if m.wait < config.MushroomDelayMinTicks || m.wait > config.MushroomDelayMaxTicks {
-			t.Errorf("seed %d: wait %d", seed, m.wait)
+func TestTheMushroomIsDueWithinItsShareOfTheJewels(t *testing.T) {
+	const jewels = 40
+	for seed := range uint64(200) {
+		m := newPickup(rand.New(rand.NewPCG(seed, 1)), jewels, config.MushroomGoneMinPercent, config.MushroomGoneMaxPercent, config.MushroomShowTicks)
+		if m.after < jewels*config.MushroomGoneMinPercent/100 || m.after > jewels*config.MushroomGoneMaxPercent/100 {
+			t.Errorf("seed %d: after %d of %d", seed, m.after, jewels)
 		}
 	}
 }
 
-// Every layout must show its mushroom with no kobold killed, however the dwarf
-// fares, which is what the playtest to level 7 never saw (DESIGN D7).
-func TestEveryLevelShowsAMushroomWithNoKills(t *testing.T) {
+func TestAPickupAlwaysNeedsAJewelGone(t *testing.T) {
+	if m := newPickup(rand.New(rand.NewPCG(1, 1)), 1, 25, 50, 10); m.after != 1 {
+		t.Errorf("after %d", m.after)
+	}
+}
+
+// Every layout must show its mushroom, with no kobold killed, before the last
+// jewel goes, so that a fast clear can't miss it (DESIGN D7).
+func TestEveryLevelShowsAMushroomBeforeItsLastJewel(t *testing.T) {
 	for n := 1; n <= len(config.Levels); n++ {
 		l, err := Parse(config.LevelFor(n))
 		if err != nil {
@@ -348,18 +353,34 @@ func TestEveryLevelShowsAMushroomWithNoKills(t *testing.T) {
 		}
 		s := session.New(config.Skills[1], 1000)
 		w := New(s, l, config.TuningFor(config.Skills[1], n), rand.New(rand.NewPCG(uint64(n), 1)))
-		for range config.MushroomDelayMaxTicks + 1 {
-			w.Update(None, false)
-			if w.Mushroom.Showing || w.Cleared() {
-				break
-			}
-			if w.Caught {
-				w.Respawn()
-			}
+		if w.Update(None, false); w.Mushroom.Showing {
+			t.Errorf("level %d: showing with no jewels gone", n)
 		}
+		if w.Mushroom.after >= w.jewelTotal {
+			t.Errorf("level %d: after %d of %d jewels", n, w.Mushroom.after, w.jewelTotal)
+		}
+		w.JewelsLeft = w.jewelTotal - w.Mushroom.after
+		w.Update(None, false)
 		if !w.Mushroom.Showing {
-			t.Errorf("level %d: no mushroom, wait %d, cleared %v", n, w.Mushroom.wait, w.Cleared())
+			t.Errorf("level %d: no mushroom after %d of %d jewels", n, w.Mushroom.after, w.jewelTotal)
 		}
+	}
+}
+
+// Jewels a goblin eats count as gone, as they do towards clearing the level.
+func TestAnEatenJewelBringsTheMushroomNearer(t *testing.T) {
+	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf, {5, 0}: config.LevelJewel}, 0, 1, 12)
+	w, _ := newWorld(t, cells)
+	w.Tuning.KoboldTotal = 0
+	w.Mushroom.after = 1
+	run(w, None, 1)
+	if w.Mushroom.Showing {
+		t.Fatal("showing with no jewels gone")
+	}
+	w.Kobolds = []Kobold{{X: 4*cell + cell/2 - 1, Moving: Right, Goblin: 100}}
+	run(w, None, 2)
+	if !w.Mushroom.Showing || w.JewelsLeft != 1 || w.JewelsTaken != 0 {
+		t.Errorf("mushroom %+v, left %d, taken %d", w.Mushroom, w.JewelsLeft, w.JewelsTaken)
 	}
 }
 
@@ -423,7 +444,7 @@ func TestTheMushroomVanishesOnTimeAndNeverReturns(t *testing.T) {
 	if w.Mushroom.Showing {
 		t.Fatal("still showing after its time")
 	}
-	if ev := run(w, None, config.MushroomDelayMaxTicks); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
+	if ev := run(w, None, 60*config.TPS); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
 		t.Errorf("came back: %+v", w.Mushroom)
 	}
 }
@@ -433,19 +454,21 @@ func TestADeathLosesAShowingMushroomButNotOneToCome(t *testing.T) {
 	run(w, None, 1)
 	w.catchDwarf()
 	w.Respawn()
-	if ev := run(w, None, config.MushroomDelayMaxTicks); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
+	if ev := run(w, None, 60*config.TPS); w.Mushroom.Showing || slices.Contains(ev, MushroomAppeared) {
 		t.Errorf("came back: %+v", w.Mushroom)
 	}
 
 	w = quietWorld(t)
-	w.Mushroom.wait = 10
+	w.Mushroom.after = 1
+	w.jewelTotal, w.JewelsLeft = 2, 2
 	run(w, None, 4)
 	w.catchDwarf()
 	w.Respawn()
-	if w.Mushroom.wait != 6 {
-		t.Errorf("wait %d after the death", w.Mushroom.wait)
+	if w.Mushroom.Showing {
+		t.Fatalf("showing early: %+v", w.Mushroom)
 	}
-	run(w, None, 7)
+	w.JewelsLeft = 1
+	run(w, None, 1)
 	if !w.Mushroom.Showing {
 		t.Errorf("didn't come: %+v", w.Mushroom)
 	}
@@ -573,7 +596,7 @@ func TestThereIsNoTankardBeforeItsFirstLevel(t *testing.T) {
 	}
 }
 
-func TestATankardComesOneLevelInThreeWithinItsDelays(t *testing.T) {
+func TestATankardComesOneLevelInThreeWithinItsShareOfTheJewels(t *testing.T) {
 	l, err := Parse(config.LevelFor(3))
 	if err != nil {
 		t.Fatal(err)
@@ -591,8 +614,8 @@ func TestATankardComesOneLevelInThreeWithinItsDelays(t *testing.T) {
 			continue
 		}
 		count++
-		if p.wait < config.TankardDelayMinTicks || p.wait > config.TankardDelayMaxTicks {
-			t.Errorf("seed %d: wait %d", seed, p.wait)
+		if jewels := layoutJewels(l); p.after < jewels*config.TankardGoneMinPercent/100 || p.after > jewels*config.TankardGoneMaxPercent/100 {
+			t.Errorf("seed %d: after %d of %d", seed, p.after, jewels)
 		}
 		if q, _ := due(seed); p != q {
 			t.Errorf("seed %d: %+v then %+v", seed, p, q)
@@ -634,7 +657,7 @@ func TestADeathLosesAShowingTankard(t *testing.T) {
 	run(w, None, 1)
 	w.catchDwarf()
 	w.Respawn()
-	if ev := run(w, None, config.TankardDelayMaxTicks); w.Tankard.Showing || slices.Contains(ev, TankardAppeared) {
+	if ev := run(w, None, 60*config.TPS); w.Tankard.Showing || slices.Contains(ev, TankardAppeared) {
 		t.Errorf("came back: %+v", w.Tankard)
 	}
 }
@@ -650,4 +673,15 @@ func TestPickupsNeverShareACell(t *testing.T) {
 	if w.pickupFits(9, 0) {
 		t.Error("fits on the tankard")
 	}
+}
+
+// layoutJewels counts a layout's jewels.
+func layoutJewels(l *Level) int {
+	n := 0
+	for _, j := range l.jewels {
+		if j {
+			n++
+		}
+	}
+	return n
 }

@@ -196,21 +196,23 @@ type Shot struct {
 	Dir  Dir
 }
 
-// Pickup is an item that appears once in a level, after a wait, for a limited
-// time (DESIGN §6). X and Y are its cell.
+// Pickup is an item that appears once in a level, when enough jewels are gone,
+// for a limited time (DESIGN §6). X and Y are its cell.
 type Pickup struct {
 	X, Y    int
 	Showing bool
 	Ticks   int // ticks left of showing
 
-	wait int  // ticks until it appears
-	show int  // how long it will show
-	done bool // it has been and gone, or never comes
+	after int  // jewels that must be gone before it appears
+	show  int  // how long it will show
+	done  bool // it has been and gone, or never comes
 }
 
-// newPickup schedules a pickup between two delays.
-func newPickup(rng *rand.Rand, minWait, maxWait, show int) Pickup {
-	return Pickup{wait: minWait + rng.IntN(maxWait-minWait+1), show: show}
+// newPickup schedules a pickup for when a random share of a level's jewels,
+// between two percentages, are gone: always at least one.
+func newPickup(rng *rand.Rand, jewels, minPercent, maxPercent, show int) Pickup {
+	percent := minPercent + rng.IntN(maxPercent-minPercent+1)
+	return Pickup{after: max(jewels*percent/100, 1), show: show}
 }
 
 // lose takes away a pickup that is showing, for good. One still to come is left
@@ -249,6 +251,7 @@ type World struct {
 	rng          *rand.Rand
 	earth        []bool
 	jewels       []bool
+	jewelTotal   int // the jewels the level began with
 	spawnWait    int
 	pressed      Dir // the direction pushed this tick, for holding up a sack
 	cleared      bool
@@ -271,11 +274,7 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		jewels:    append([]bool(nil), l.jewels...),
 		spawnWait: t.KoboldSpawnTicks,
 		dist:      make([]int, len(l.earth)),
-		Mushroom:  newPickup(rng, config.MushroomDelayMinTicks, config.MushroomDelayMaxTicks, config.MushroomShowTicks),
 		Tankard:   Pickup{done: true},
-	}
-	if t.TankardOneIn > 0 && rng.IntN(t.TankardOneIn) == 0 {
-		w.Tankard = newPickup(rng, config.TankardDelayMinTicks, config.TankardDelayMaxTicks, config.TankardShowTicks)
 	}
 	w.placeDwarf()
 	for _, s := range l.sacks {
@@ -285,6 +284,11 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		if j {
 			w.JewelsLeft++
 		}
+	}
+	w.jewelTotal = w.JewelsLeft
+	w.Mushroom = newPickup(rng, w.jewelTotal, config.MushroomGoneMinPercent, config.MushroomGoneMaxPercent, config.MushroomShowTicks)
+	if t.TankardOneIn > 0 && rng.IntN(t.TankardOneIn) == 0 {
+		w.Tankard = newPickup(rng, w.jewelTotal, config.TankardGoneMinPercent, config.TankardGoneMaxPercent, config.TankardShowTicks)
 	}
 	return w
 }
@@ -711,16 +715,15 @@ func (w *World) measure(digs bool) {
 	}
 }
 
-// updatePickup runs a pickup's wait and time showing, and reports whether the
-// dwarf has just collected it. If no cell is open when its wait is over, it
-// tries again each tick.
+// updatePickup watches for a pickup's jewels to go, runs its time showing, and
+// reports whether the dwarf has just collected it. If no cell is open when they
+// have gone, it tries again each tick.
 func (w *World) updatePickup(p *Pickup, appeared Event) bool {
 	if p.done {
 		return false
 	}
 	if !p.Showing {
-		if p.wait > 0 {
-			p.wait--
+		if w.jewelTotal-w.JewelsLeft < p.after {
 			return false
 		}
 		x, y, ok := w.pickCell()

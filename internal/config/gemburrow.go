@@ -81,25 +81,26 @@ const (
 	TitleWalkPixels   = 1
 	TitleGapPixels    = 52
 	TitlePassTicks    = 840
-	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears
-	// between its two delays into the level, at least PickupMinCells from the
-	// dwarf, for MushroomShowTicks, and PickupWarnTicks of that it flickers.
+	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears once
+	// a random share of the level's jewels, between these percentages, are gone,
+	// at least PickupMinCells from the dwarf, for MushroomShowTicks, and
+	// PickupWarnTicks of that it flickers.
 	// Kobolds eaten in a chase score EatPoints, then double each.
-	MushroomDelayMinTicks = 15 * TPS
-	MushroomDelayMaxTicks = 30 * TPS
-	MushroomShowTicks     = 10 * TPS
-	PickupMinCells        = 4
-	PickupWarnTicks       = TPS
-	MushroomPoints        = 1000
-	EatPoints             = 200
+	MushroomGoneMinPercent = 25
+	MushroomGoneMaxPercent = 50
+	MushroomShowTicks      = 10 * TPS
+	PickupMinCells         = 4
+	PickupWarnTicks        = TPS
+	MushroomPoints         = 1000
+	EatPoints              = 200
 	// The tankard of ale (DESIGN §6, D12): from TankardFirstLevel, one level in
-	// TankardOneIn has one, appearing between its two delays into the level for
-	// TankardShowTicks.
-	TankardFirstLevel    = 3
-	TankardOneIn         = 3
-	TankardDelayMinTicks = 30 * TPS
-	TankardDelayMaxTicks = 60 * TPS
-	TankardShowTicks     = 8 * TPS
+	// TankardOneIn has one, appearing once a random share of the jewels, between
+	// these percentages, are gone, for TankardShowTicks.
+	TankardFirstLevel     = 3
+	TankardOneIn          = 3
+	TankardGoneMinPercent = 50
+	TankardGoneMaxPercent = 75
+	TankardShowTicks      = 8 * TPS
 	// ExtraLifeMessageTicks is how long the message for an extra life stays up.
 	ExtraLifeMessageTicks = 2 * TPS
 	// ChaseWarnTicks is how long fleeing kobolds flash at the chase's start and end.
