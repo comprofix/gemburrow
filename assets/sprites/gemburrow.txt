@@ -1,4 +1,4 @@
-; Gem Burrow placeholder sprites (DESIGN §3), to be replaced with final art.
+; Gem Burrow sprites (DESIGN §3).
 ; Drawn for the Resurrect 64 palette. Sprites face right; left-facing frames are
 ; mirrored when drawn.
 colours k=Ink r=Rust m=Maroon c=Copper a=DeepTeal s=Aqua j=Jade w=White h=Dusk H=Fog b=Blush o=Amber O=Honey t=Cobalt n=Bark g=Emerald l=Forest y=Amber Y=Gold p=Grape S=Sand d=Clay
