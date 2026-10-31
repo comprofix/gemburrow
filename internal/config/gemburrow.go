@@ -53,7 +53,10 @@ const (
 // Tuning is what difficulty and the level ramp change (DESIGN §5).
 type Tuning struct {
 	// GoblinSpeed is in pixels per tick, and must divide CellSize.
-	GoblinSpeed       int
+	GoblinSpeed int
+	// GoblinExtraOneIn gives a walking goblin an extra pixel's move, one tick
+	// in this many; 0 means never.
+	GoblinExtraOneIn  int
 	GoblinTotal       int // goblins in a level
 	GoblinsAtOnce     int // the most on the field together
 	GoblinSpawnTicks  int // between goblins entering
@@ -62,13 +65,46 @@ type Tuning struct {
 	DiggerTicks       int // how long it stays one (DESIGN D8)
 }
 
-// BaseTuning is the only tuning until the skill tables are filled in.
-var BaseTuning = Tuning{
-	GoblinSpeed:       1,
-	GoblinTotal:       6,
-	GoblinsAtOnce:     3,
-	GoblinSpawnTicks:  3 * TPS,
-	ShotRechargeTicks: 2 * TPS,
-	DiggerEveryTicks:  8 * TPS,
-	DiggerTicks:       4 * TPS,
+// The level ramp (DESIGN §5, §11). It stops rising at RampLevels. Counts the
+// original gives in its game ticks are converted by originalTicks.
+const (
+	RampLevels = 10
+
+	rampGoblinSpeed   = 1
+	rampMinGoblins    = 1
+	rampMinAtOnce     = 2
+	rampMinExtraOneIn = 2
+	// A goblin turns digger this often on level 1, less rampDiggerFall for
+	// each level after it.
+	rampDiggerEvery = 8 * TPS
+	rampDiggerFall  = 4 * TPS / 9
+)
+
+// originalTicks converts a count of the original's game ticks, of 80 ms at
+// its reference speed, to this game's ticks.
+func originalTicks(n int) int { return n * TPS * 2 / 25 }
+
+// TuningFor is the tuning for a level, counting from 1, at a skill.
+func TuningFor(s Skill, level int) Tuning {
+	l := min(max(level, 1), RampLevels)
+	atOnce := 4
+	switch {
+	case l == 1:
+		atOnce = 3
+	case l >= 8:
+		atOnce = 5
+	}
+	return Tuning{
+		GoblinSpeed:       rampGoblinSpeed,
+		GoblinExtraOneIn:  max(15-l+s.ExtraRarity, rampMinExtraOneIn),
+		GoblinTotal:       max(l+5+s.ExtraGoblins, rampMinGoblins),
+		GoblinsAtOnce:     max(atOnce+s.ExtraAtOnce, rampMinAtOnce),
+		GoblinSpawnTicks:  originalTicks(45-2*l) * s.SpawnPercent / 100,
+		ShotRechargeTicks: originalTicks(60+3*l) * s.RechargePercent / 100,
+		DiggerEveryTicks:  (rampDiggerEvery - (l-1)*rampDiggerFall) * s.DiggerPercent / 100,
+		DiggerTicks:       originalTicks(30 + 2*l),
+	}
 }
+
+// BaseTuning is level 1 at Normal, for tests.
+var BaseTuning = TuningFor(Skills[1], 1)

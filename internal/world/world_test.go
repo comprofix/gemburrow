@@ -41,7 +41,9 @@ func newWorld(t *testing.T, cells map[[2]int]byte) (*World, *session.Session) {
 		t.Fatal(err)
 	}
 	s := session.New(config.Skills[0], config.StartLives)
-	return New(s, l, config.BaseTuning, rand.New(rand.NewPCG(1, 2))), s
+	tuning := config.BaseTuning
+	tuning.GoblinExtraOneIn = 0 // an exact pace, so that tests can count ticks
+	return New(s, l, tuning, rand.New(rand.NewPCG(1, 2))), s
 }
 
 func run(w *World, dir Dir, ticks int) []Event {

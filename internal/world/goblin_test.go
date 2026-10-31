@@ -18,6 +18,24 @@ func corridor(cells map[[2]int]byte, y, x0, x1 int) map[[2]int]byte {
 	return cells
 }
 
+func TestWalkingGoblinStepsExtraAndStaysOnTheGrid(t *testing.T) {
+	w, _ := newWorld(t, corridor(map[[2]int]byte{{0, 3}: config.LevelDwarf}, 3, 1, 12))
+	w.Tuning.DiggerEveryTicks, w.Tuning.GoblinSpawnTicks = 0, 1000*config.TPS
+	w.Tuning.GoblinExtraOneIn = 2
+	addGoblin(w, 12, 3)
+	ticks := 0
+	for w.Goblins[0].X > 6*cell {
+		w.Update(None, false)
+		ticks++
+		if w.Goblins[0].Y != 3*cell {
+			t.Fatalf("left its row: %+v", w.Goblins[0])
+		}
+	}
+	if ticks >= 6*cell {
+		t.Errorf("%d ticks for 6 cells, no faster than the base speed", ticks)
+	}
+}
+
 // addGoblin puts a goblin on cell (x, y), counted as having entered.
 func addGoblin(w *World, x, y int) {
 	w.Goblins = append(w.Goblins, Goblin{X: x * cell, Y: y * cell})

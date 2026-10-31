@@ -66,7 +66,7 @@ func loadLevel(ctx *scene.Context, n int) *world.World {
 	if err != nil {
 		panic(err)
 	}
-	return world.New(ctx.Session, l, config.BaseTuning, ctx.RNG)
+	return world.New(ctx.Session, l, config.TuningFor(ctx.Session.Skill, n), ctx.RNG)
 }
 
 // World is the game's state, for tests.

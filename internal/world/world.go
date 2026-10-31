@@ -485,6 +485,21 @@ func (w *World) chooseDigger() {
 // for these.
 func (w *World) moveGoblin(g *Goblin) {
 	g.Digging = max(g.Digging-1, 0)
+	steps := w.Tuning.GoblinSpeed
+	if e := w.Tuning.GoblinExtraOneIn; e > 0 && steps > 0 && g.Digging == 0 && w.rng.IntN(e) == 0 {
+		steps++
+	}
+	// A pixel at a time, so that no step passes over the centre of a cell.
+	for i := 0; i < max(steps, 1); i++ {
+		w.stepGoblin(g, min(steps, 1))
+		if g.Pushing {
+			return
+		}
+	}
+}
+
+// stepGoblin moves a goblin the given pixels, at most one.
+func (w *World) stepGoblin(g *Goblin, speed int) {
 	if centred(g.X, g.Y) {
 		g.Pushing = false
 		g.Moving = w.chooseWay(g)
@@ -502,7 +517,6 @@ func (w *World) moveGoblin(g *Goblin) {
 			g.Pushing = pushing
 		}
 	}
-	speed := w.Tuning.GoblinSpeed
 	if g.Pushing {
 		speed = w.pusherSpeed(g.X, g.Y, g.Moving)
 	}
