@@ -146,7 +146,7 @@ func drawTitleSmooth(dst *ebiten.Image, s int, ticks int64) {
 	}
 	if dug > 0 {
 		n := at(0, config.TitleTunnelRow*config.CellSize)
-		shapes.FillRoundRect(dst, shapes.R(n.x-float64(cell), n.y, float64((dug+1)*cell), float64(cell)), tunnelRoom*u, resurrect64.Shadow)
+		shapes.FillRoundRect(dst, shapes.R(n.x-float64(cell), n.y, float64((dug+1)*cell), float64(cell)), tunnelRoom*u, resurrect64.Ink)
 	}
 	frame := int(ticks / jewelTicks)
 	for _, j := range titleJewels {

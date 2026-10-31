@@ -191,12 +191,12 @@ func drawField(w *world.World, at func(x, y int) pen, u float64) {
 				drawSpecks(n, x, y)
 				continue
 			}
-			n.rect(0, 0, artCell, artCell, tunnelRoom, resurrect64.Shadow)
+			n.rect(0, 0, artCell, artCell, tunnelRoom, resurrect64.Ink)
 			if open(x+1, y) {
-				n.rect(artCell/2, 0, artCell, artCell, 0, resurrect64.Shadow)
+				n.rect(artCell/2, 0, artCell, artCell, 0, resurrect64.Ink)
 			}
 			if open(x, y+1) {
-				n.rect(0, artCell/2, artCell, artCell, 0, resurrect64.Shadow)
+				n.rect(0, artCell/2, artCell, artCell, 0, resurrect64.Ink)
 			}
 		}
 	}
@@ -296,8 +296,8 @@ func drawDwarf(n pen, frame, pick int) {
 		drawPick(n, 8, 24, 4, 7, 0, 9, 9, 3.5)
 	}
 	stride := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
-	n.rect(8+stride, 26, 7.5, 5, 1.5, resurrect64.Bark)
-	n.rect(17-stride, 26, 7.5, 5, 1.5, resurrect64.Bark)
+	n.rect(8+stride, 26, 7.5, 5, 1.5, resurrect64.Clay)
+	n.rect(17-stride, 26, 7.5, 5, 1.5, resurrect64.Clay)
 	n.rect(7.5, 15, 17, 12.5, 3.5, resurrect64.Cobalt)
 	n.rect(7.5, 23, 17, 2.6, 0.8, resurrect64.Bark)
 	n.rect(14, 22.6, 4, 3.4, 0.8, resurrect64.Gold)
