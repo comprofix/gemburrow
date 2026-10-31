@@ -275,21 +275,34 @@ func drawPick(n pen, x0, y0, x1, y1, ax, ay, bx, by float64) {
 	n.line(ax, ay, bx, by, 3, resurrect64.Mist)
 }
 
+// drawDwarf is the hero: a domed helmet over a round-nosed face, and a full beard
+// with a moustache, tapering to a point over a belted tunic.
+// drawDwarf is the hero: a domed helmet over a round-nosed face, and a full beard
+// with a moustache, tapering to a point over a belted tunic.
 func drawDwarf(n pen, frame, pick int) {
 	if pick == pickOnBack {
 		drawPick(n, 8, 24, 4, 7, 0, 9, 9, 3.5)
 	}
 	stride := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
-	n.rect(9+stride, 26, 7, 5, 1.5, resurrect64.Ink)
-	n.rect(17-stride, 26, 7, 5, 1.5, resurrect64.Ink)
-	n.rect(8, 15, 16, 13, 3, resurrect64.Cobalt)
-	n.rect(22, 16, 6, 4, 2, resurrect64.Blush)
-	n.circle(16, 10, 7.5, resurrect64.Blush)
-	n.poly(resurrect64.Orange, 9, 11, 25, 11, 23, 22, 16, 24, 9, 21)
-	n.poly(resurrect64.Amber, 12, 14, 24, 14, 22, 20, 16, 21, 12, 19)
-	n.circle(21, 9, 1.2, resurrect64.Ink)
-	n.rect(7, 6, 18, 3, 1, resurrect64.Slate)
-	n.poly(resurrect64.Fog, 8, 7, 9, 3, 13, 1, 19, 1, 23, 3, 24, 7)
+	n.rect(8+stride, 26, 7.5, 5, 1.5, resurrect64.Bark)
+	n.rect(17-stride, 26, 7.5, 5, 1.5, resurrect64.Bark)
+	n.rect(7.5, 15, 17, 12.5, 3.5, resurrect64.Cobalt)
+	n.rect(7.5, 23, 17, 2.6, 0.8, resurrect64.Bark)
+	n.rect(14, 22.6, 4, 3.4, 0.8, resurrect64.Gold)
+	n.rect(22.5, 15.5, 5, 7, 2.2, resurrect64.Cobalt)
+	n.circle(25.5, 22, 2.6, resurrect64.Blush)
+	n.circle(16, 9.5, 7.5, resurrect64.Blush)
+	n.poly(resurrect64.Copper, 8.5, 9, 10.5, 12, 22, 13, 23.5, 12, 23, 18, 20, 21.5, 16.5, 25, 13, 21.5, 9.5, 17.5)
+	n.line(12, 14.5, 14.5, 21, 0.9, resurrect64.Rust)
+	n.line(16.5, 15, 16.5, 23, 0.9, resurrect64.Rust)
+	n.line(21, 14.5, 18.5, 21, 0.9, resurrect64.Rust)
+	n.circle(15.5, 12.8, 2.4, resurrect64.Caramel)
+	n.circle(20.5, 12.8, 2.4, resurrect64.Caramel)
+	n.circle(23, 10.8, 2.2, resurrect64.Apricot)
+	n.circle(20.5, 9.9, 1.1, resurrect64.Ink)
+	n.rect(6.5, 6, 19.5, 2.8, 1, resurrect64.Slate)
+	n.poly(resurrect64.Fog, 8, 6.5, 9, 3, 12.5, 0.8, 19.5, 0.8, 23, 3, 24.5, 6.5)
+	n.circle(12.5, 3.5, 1, resurrect64.White)
 	switch pick {
 	case pickUp:
 		drawPick(n, 24, 20, 27, 5, 21, 8, 32, 2)
