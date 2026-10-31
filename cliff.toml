@@ -22,9 +22,9 @@ body = """
 {% if version -%}
 ## [{{ version | trim_start_matches(pat="v") }}]\
 {% if previous.version -%}
-(https://github.com/comprofix/gameskeleton/compare/{{ previous.version }}...{{ version }})\
+(https://github.com/comprofix/gemburrow/compare/{{ previous.version }}...{{ version }})\
 {% else -%}
-(https://github.com/comprofix/gameskeleton/commits/{{ version }})\
+(https://github.com/comprofix/gemburrow/commits/{{ version }})\
 {% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
 {% else -%}
 ## [Unreleased]

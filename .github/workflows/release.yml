@@ -59,11 +59,11 @@ jobs:
         include:
           - goos: windows
             cgo: "0"
-            exe: gameskeleton.exe
+            exe: gemburrow.exe
             ldflags: -H=windowsgui
           - goos: linux
             cgo: "1"
-            exe: gameskeleton
+            exe: gemburrow
             ldflags: ""
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -79,8 +79,8 @@ jobs:
       - name: Make the exe icon
         if: matrix.goos == 'windows'
         run: |
-          go run ./cmd/winicon gameskeleton.ico
-          go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico gameskeleton.ico -o cmd/gameskeleton/rsrc_windows_amd64.syso
+          go run ./cmd/winicon gemburrow.ico
+          go run github.com/akavel/rsrc@v0.10.2 -arch amd64 -ico gemburrow.ico -o cmd/gemburrow/rsrc_windows_amd64.syso
       - name: Build
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
@@ -89,10 +89,10 @@ jobs:
         run: |
           go build -trimpath \
             -ldflags "-s -w ${{ matrix.ldflags }}" \
-            -o "stage/${{ matrix.exe }}" ./cmd/gameskeleton
+            -o "stage/${{ matrix.exe }}" ./cmd/gemburrow
       - name: Package
         run: |
-          name="gameskeleton-$GITHUB_REF_NAME-${{ matrix.goos }}-amd64"
+          name="gemburrow-$GITHUB_REF_NAME-${{ matrix.goos }}-amd64"
           mkdir dist
           mv stage "$name"
           cp README.md LICENSE "$name/"
