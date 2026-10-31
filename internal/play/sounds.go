@@ -56,6 +56,21 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.3, Release: audio.Ticks(4), Volume: 0.8},
 		Notes: audio.Notes("C6:3 E6:3 G6:3 C7:8"),
 	}}
+	// MushroomUp is the mushroom appearing.
+	MushroomUp = &audio.Effect{Name: "mushroom up", Channel: 1, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Triangle, Decay: audio.Ticks(10), Sustain: 0.4, Release: audio.Ticks(4), Volume: 0.8},
+		Notes: audio.Notes("C5:4 G5:4 C6:10"),
+	}}
+	// MushroomTaken is the mushroom collected, starting the chase.
+	MushroomTaken = &audio.Effect{Name: "mushroom taken", Channel: 0, Priority: 5, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.5, Release: audio.Ticks(4), Volume: 0.8},
+		Notes: audio.Notes("A5:3 C6:3 E6:3 A6:12"),
+	}}
+	// GoblinEaten is a goblin eaten in the chase.
+	GoblinEaten = &audio.Effect{Name: "goblin eaten", Channel: 1, Priority: 4, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(8), Release: audio.Ticks(3), Volume: 0.8},
+		Notes: audio.Notes("E5:3 G5:3 E6:8"),
+	}}
 	// GoldTaken is gold collected.
 	GoldTaken = &audio.Effect{Name: "gold", Channel: 1, Priority: 3, Part: audio.Part{
 		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(10), Sustain: 0.4, Release: audio.Ticks(4), Volume: 0.8},
@@ -64,6 +79,7 @@ var (
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ScoresTune}, Effects: []*audio.Effect{
+var Sounds = audio.Bank{Tunes: []*audio.Tune{TitleTune, DiggingTune, ChaseTune, ScoresTune}, Effects: []*audio.Effect{
 	Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
+	MushroomUp, MushroomTaken, GoblinEaten,
 }}

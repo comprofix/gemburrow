@@ -51,6 +51,16 @@ const (
 	GoldTicks         = 5 * TPS
 	GoldDugUnderTicks = 4 * TPS / 5
 	GoldPoints        = 500
+
+	// The mushroom and the chase (DESIGN §6, D7, D10). The mushroom appears in
+	// the field's top-right cell. Goblins eaten in a chase score EatPoints, then
+	// double each.
+	MushroomCol    = FieldCols - 1
+	MushroomRow    = 0
+	MushroomPoints = 1000
+	EatPoints      = 200
+	// ChaseWarnTicks is how long fleeing goblins flash at the chase's start and end.
+	ChaseWarnTicks = 8 * TPS / 5
 )
 
 // Tuning is what difficulty and the level ramp change (DESIGN §5).
@@ -68,6 +78,7 @@ type Tuning struct {
 	// sack before turning into a cave troll; negative means never (DESIGN D8).
 	TrollAfterTicks int
 	TrollTicks      int // how long it stays one
+	ChaseTicks      int // how long the chase lasts
 }
 
 // The level ramp (DESIGN §5, §11). It stops rising at RampLevels. Counts the
@@ -104,6 +115,7 @@ func TuningFor(s Skill, level int) Tuning {
 		ShotRechargeTicks: originalTicks(60+3*l) * s.RechargePercent / 100,
 		TrollAfterTicks:   originalTicks(max(10-l+s.ExtraPatience, 0)),
 		TrollTicks:        originalTicks(30 + 2*l),
+		ChaseTicks:        originalTicks(250 - 20*l),
 	}
 }
 

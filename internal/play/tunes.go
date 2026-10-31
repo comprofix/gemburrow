@@ -52,6 +52,19 @@ var (
 		{Voice: tuneBeat, Notes: beat(4, 12)},
 	}}
 
+	// ChaseTune plays under the chase (DESIGN §6). It leaves the harmony channel
+	// to the sound effects.
+	ChaseTune = &audio.Tune{Name: "chase", Loop: true, Parts: []audio.Part{
+		{Voice: playLead, Notes: audio.Notes(
+			"A5:6 -:6 E5:6 -:6 A5:6 C6:6 B5:6 G5:6",
+			"A5:6 -:6 F5:6 -:6 E5:6 G5:6 E5:12",
+		)},
+		{Voice: playBass, Notes: audio.Notes(
+			"A2:12 A3:12 A2:12 A3:12",
+			"F2:12 F3:12 E2:12 E3:12",
+		)},
+	}}
+
 	// DiggingTune plays under the game. It leaves the harmony channel to the
 	// sound effects.
 	DiggingTune = &audio.Tune{Name: "digging", Loop: true, Parts: []audio.Part{

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/comprofix/gemburrow/internal/config"
+	"github.com/comprofix/gemburrow/internal/session"
 )
 
 // corridor opens row y from column x0 to x1, with the dwarf and spawn cells
@@ -299,5 +300,86 @@ func TestSameSeedSameChase(t *testing.T) {
 	bx, by := play()
 	if ax != bx || ay != by {
 		t.Errorf("(%d, %d) then (%d, %d)", ax, ay, bx, by)
+	}
+}
+
+// chaseWorld is a level with an open row to the mushroom's corner, its one
+// goblin entered, and the dwarf at the row's other end.
+func chaseWorld(t *testing.T) (*World, *session.Session) {
+	t.Helper()
+	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 0, 1, config.FieldCols-1)
+	w, s := newWorld(t, cells)
+	w.Tuning.TrollAfterTicks, w.Tuning.GoblinSpawnTicks, w.spawnWait = -1, 0, 0
+	w.Tuning.GoblinTotal = 1
+	return w, s
+}
+
+func TestTheMushroomAppearsOnceAllGoblinsHaveEntered(t *testing.T) {
+	w, _ := chaseWorld(t)
+	if w.Mushroom {
+		t.Fatal("showing from the start")
+	}
+	ev := run(w, None, 2)
+	if !w.Mushroom || !slices.Contains(ev, MushroomAppeared) {
+		t.Errorf("mushroom %v, entered %d, events %v", w.Mushroom, w.Spawned, ev)
+	}
+}
+
+func TestTakingTheMushroomScoresAndStartsTheChase(t *testing.T) {
+	w, s := chaseWorld(t)
+	w.Mushroom, w.mushroomDone = true, true
+	w.Spawned = 1
+	w.Dwarf.X, w.Dwarf.Y = config.MushroomCol*cell, config.MushroomRow*cell
+	ev := run(w, None, 1)
+	if w.Mushroom || w.Chase != w.Tuning.ChaseTicks || s.Score != config.MushroomPoints || !slices.Contains(ev, MushroomTaken) {
+		t.Errorf("mushroom %v, chase %d, score %d, events %v", w.Mushroom, w.Chase, s.Score, ev)
+	}
+	ev = run(w, None, w.Tuning.ChaseTicks)
+	if w.Chase != 0 || !slices.Contains(ev, ChaseOver) {
+		t.Errorf("chase %d after its time, events %v", w.Chase, ev)
+	}
+}
+
+func TestEatingGoblinsDoublesTheScoreAndTheyAreReplaced(t *testing.T) {
+	w, s := chaseWorld(t)
+	w.Tuning.GoblinTotal, w.Spawned = 10, 10
+	w.Chase, w.eatPoints = 1000, config.EatPoints
+	for range 3 {
+		w.Goblins = []Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+		w.checkCaught()
+		if w.Caught {
+			t.Fatal("caught in a chase")
+		}
+	}
+	if want := 200 + 400 + 800; s.Score != want || w.Killed != 3 || w.Tuning.GoblinTotal != 13 {
+		t.Errorf("score %d, want %d; killed %d, total %d", s.Score, want, w.Killed, w.Tuning.GoblinTotal)
+	}
+}
+
+func TestGoblinsFleeAndNoneEnterInAChase(t *testing.T) {
+	w, _ := chaseWorld(t)
+	w.Tuning.GoblinTotal = 5
+	w.Spawned = 1
+	addGoblin(w, 6, 0)
+	w.Chase = 1000
+	run(w, None, cell)
+	if g := w.Goblins[0]; g.X <= 6*cell {
+		t.Errorf("came nearer: %+v", g)
+	}
+	if len(w.Goblins) != 1 || w.Spawned != 2 {
+		t.Errorf("a goblin entered: %d, %d", len(w.Goblins), w.Spawned)
+	}
+}
+
+func TestADeathEndsTheChaseAndTheMushroomReturns(t *testing.T) {
+	w, _ := chaseWorld(t)
+	w.mushroomDone, w.Chase = true, 1000
+	w.catchDwarf()
+	if w.Chase != 0 {
+		t.Errorf("chase %d after dying", w.Chase)
+	}
+	w.Respawn()
+	if w.mushroomDone || w.Mushroom {
+		t.Errorf("after respawn: done %v, showing %v", w.mushroomDone, w.Mushroom)
 	}
 }

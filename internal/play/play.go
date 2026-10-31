@@ -95,6 +95,9 @@ func (p *Play) Update(ctx *scene.Context) error {
 	case p.clear > 0:
 		p.clear--
 		if p.clear == 0 {
+			if p.world.Chase > 0 {
+				ctx.Audio.PlayTune(DiggingTune)
+			}
 			p.level++
 			p.world = loadLevel(ctx, p.level)
 		}
@@ -132,6 +135,15 @@ func (p *Play) Update(ctx *scene.Context) error {
 			ctx.Audio.PlayEffect(SackBurst)
 		case world.GoldTaken:
 			ctx.Audio.PlayEffect(GoldTaken)
+		case world.MushroomAppeared:
+			ctx.Audio.PlayEffect(MushroomUp)
+		case world.MushroomTaken:
+			ctx.Audio.PlayEffect(MushroomTaken)
+			ctx.Audio.PlayTune(ChaseTune)
+		case world.GoblinEaten:
+			ctx.Audio.PlayEffect(GoblinEaten)
+		case world.ChaseOver:
+			ctx.Audio.PlayTune(DiggingTune)
 		case world.ExtraLife:
 			ctx.Audio.PlayEffect(LifeGained)
 		case world.DwarfCaught:
@@ -217,12 +229,19 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		sack.Draw(dst, 0, float64(sx), float64(config.FieldY+s.Y), false)
 	}
 
+	if w.Mushroom {
+		sheet.Sprite("mushroom").Draw(dst, 0, float64(config.FieldX+config.MushroomCol*config.CellSize), float64(config.FieldY+config.MushroomRow*config.CellSize), false)
+	}
+
 	// The goblins and the shot.
-	walker, digger := sheet.Sprite("goblin"), sheet.Sprite("goblin_digger")
+	walker, digger, scared := sheet.Sprite("goblin"), sheet.Sprite("goblin_digger"), sheet.Sprite("goblin_scared")
 	for i, g := range w.Goblins {
 		goblin := walker
 		if g.Troll > 0 {
 			goblin = digger
+		}
+		if p.fleeing() {
+			goblin = scared
 		}
 		goblin.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
 		if debug.Enabled {
@@ -249,6 +268,19 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	case w.Over:
 		banner(ctx, dst, "GAME OVER")
 	}
+}
+
+// fleeing reports whether goblins are drawn afraid: all through a chase, flashing
+// at its start and end (DESIGN §6).
+func (p *Play) fleeing() bool {
+	w := p.world
+	if w.Chase == 0 {
+		return false
+	}
+	if w.Chase > config.ChaseWarnTicks && w.Chase < w.Tuning.ChaseTicks-config.ChaseWarnTicks {
+		return true
+	}
+	return (p.ticks/flashTicks)%2 == 0
 }
 
 // banner dims the field under a message.

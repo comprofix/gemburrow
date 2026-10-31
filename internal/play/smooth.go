@@ -119,11 +119,15 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 		drawSack(at(x, sack.Y))
 	}
 
+	if w.Mushroom {
+		drawMushroom(at(config.MushroomCol*config.CellSize, config.MushroomRow*config.CellSize), int(p.ticks/jewelTicks))
+	}
+
 	// The goblins and the shot.
 	for i, g := range w.Goblins {
 		n := at(g.X, g.Y)
 		n.mirror = g.FacesLeft
-		drawGoblin(n, int(p.ticks/goblinTicks)+i, g.Troll > 0)
+		drawGoblin(n, int(p.ticks/goblinTicks)+i, g.Troll > 0, p.fleeing())
 		if debug.Enabled {
 			debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
 		}
@@ -236,10 +240,13 @@ func drawDwarf(n pen, frame int) {
 	n.poly(resurrect64.Fog, 8, 7, 9, 3, 13, 1, 19, 1, 23, 3, 24, 7)
 }
 
-func drawGoblin(n pen, frame int, digging bool) {
+func drawGoblin(n pen, frame int, digging, afraid bool) {
 	skin, shade, cloth := resurrect64.Emerald, resurrect64.Forest, resurrect64.Grape
 	if digging {
 		skin, shade, cloth = resurrect64.Orange, resurrect64.Rust, resurrect64.Maroon
+	}
+	if afraid {
+		skin, shade, cloth = resurrect64.Lavender, resurrect64.Violet, resurrect64.Grape
 	}
 	step := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
 	n.rect(9+step, 26, 6, 4, 1.5, shade)
@@ -257,6 +264,22 @@ func drawGoblin(n pen, frame int, digging bool) {
 		n.line(22, 22, 29, 18, 2, shade)
 		n.line(29, 18, 29, 24, 2, resurrect64.Fog)
 	}
+}
+
+// drawMushroom is the bonus: a glowing cap on a pale stem, its glow pulsing.
+func drawMushroom(n pen, frame int) {
+	glow := 15.0
+	if frame%2 == 0 {
+		glow = 13.5
+	}
+	n.circle(16, 13, glow, resurrect64.Plum)
+	n.rect(12, 16, 8, 12, 2.5, resurrect64.Sand)
+	n.rect(12, 25, 8, 3, 1.5, resurrect64.Clay)
+	n.poly(resurrect64.Violet, 4, 18, 5, 10, 10, 5, 16, 3, 22, 5, 27, 10, 28, 18)
+	n.rect(4, 15, 24, 4, 2, resurrect64.Violet)
+	n.circle(11, 10, 2.6, resurrect64.Lavender)
+	n.circle(20, 8, 2, resurrect64.White)
+	n.circle(22, 14, 2.4, resurrect64.Lavender)
 }
 
 func drawShot(dst *ebiten.Image, x, y, r float64) {

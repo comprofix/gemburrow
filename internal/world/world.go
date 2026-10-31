@@ -76,6 +76,10 @@ const (
 	SackBurst
 	GoblinCrushed
 	GoldTaken
+	MushroomAppeared
+	MushroomTaken
+	GoblinEaten
+	ChaseOver
 )
 
 // Level is a parsed layout.
@@ -205,18 +209,22 @@ type World struct {
 	Killed      int
 	Caught      bool // the dwarf was caught; nothing moves until Respawn
 	Over        bool // caught with no lives left
+	Mushroom    bool // the mushroom is showing (DESIGN §6)
+	Chase       int  // ticks left of the chase, when goblins flee and can be eaten
 
-	level     *Level
-	session   *session.Session
-	rng       *rand.Rand
-	earth     []bool
-	jewels    []bool
-	spawnWait int
-	pressed   Dir // the direction pushed this tick, for holding up a sack
-	cleared   bool
-	events    []Event
-	dist      []int // scratch: tunnel distance from the dwarf
-	queue     []int // scratch: the breadth-first search's queue
+	level        *Level
+	session      *session.Session
+	rng          *rand.Rand
+	earth        []bool
+	jewels       []bool
+	spawnWait    int
+	pressed      Dir // the direction pushed this tick, for holding up a sack
+	cleared      bool
+	mushroomDone bool // the level's one mushroom has appeared
+	eatPoints    int  // what the next goblin eaten scores
+	events       []Event
+	dist         []int // scratch: tunnel distance from the dwarf
+	queue        []int // scratch: the breadth-first search's queue
 }
 
 // New starts a level, scoring into s, with its randomness from rng.
@@ -274,6 +282,7 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 		return w.events
 	}
 	w.spawn()
+	w.updateChase()
 	for i := range w.Goblins {
 		w.moveGoblin(&w.Goblins[i])
 	}
@@ -416,7 +425,7 @@ func (w *World) shotHits() {
 		if s.X >= g.X && s.X < g.X+config.CellSize && s.Y >= g.Y && s.Y < g.Y+config.CellSize {
 			w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
 			w.Shot = nil
-			w.Killed++
+			w.killed()
 			w.addScore(config.GoblinPoints)
 			w.events = append(w.events, GoblinShot)
 			return
@@ -428,7 +437,7 @@ func (w *World) shotHits() {
 // and the dwarf is not standing by the entrance.
 func (w *World) spawn() {
 	t := &w.Tuning
-	if w.Spawned >= t.GoblinTotal || len(w.Goblins) >= t.GoblinsAtOnce {
+	if w.Chase > 0 || w.Spawned >= t.GoblinTotal || len(w.Goblins) >= t.GoblinsAtOnce {
 		return
 	}
 	if w.spawnWait > 0 {
@@ -543,9 +552,10 @@ func (w *World) stepGoblin(g *Goblin, speed int) {
 	w.Gold = slices.DeleteFunc(w.Gold, func(gold Gold) bool { return gold.X == cx && gold.Y == cy })
 }
 
-// chooseWay takes a shortest way to the dwarf, through the tunnels or, for a
-// troll, through earth too, with ties broken at random. With no way there,
-// the goblin wanders, turning back only at a dead end.
+// chooseWay takes a shortest way to the dwarf, or in a chase the way furthest
+// from it, through the tunnels or, for a troll, through earth too, with ties
+// broken at random. With no way there, the goblin wanders, turning back only
+// at a dead end.
 func (w *World) chooseWay(g *Goblin) Dir {
 	digs := g.Troll > 0
 	w.measure(digs)
@@ -565,7 +575,7 @@ func (w *World) chooseWay(g *Goblin) Dir {
 			continue
 		}
 		switch {
-		case best < 0 || dist < best:
+		case best < 0 || (w.Chase == 0 && dist < best) || (w.Chase > 0 && dist > best):
 			best, ways, choice = dist, 1, dir
 		case dist == best:
 			ways++
@@ -637,21 +647,65 @@ func (w *World) measure(digs bool) {
 	}
 }
 
-// checkCaught costs the dwarf a life if a goblin is touching it. Boxes are
-// inset so that only a real overlap counts.
+// updateChase shows the level's one mushroom once all its goblins have entered,
+// lets the dwarf collect it, which starts the chase, and runs the chase down
+// (DESIGN §6).
+func (w *World) updateChase() {
+	if !w.mushroomDone && w.Tuning.GoblinTotal > 0 && w.Spawned >= w.Tuning.GoblinTotal {
+		w.mushroomDone, w.Mushroom = true, true
+		w.events = append(w.events, MushroomAppeared)
+	}
+	if x, y := w.Dwarf.cell(); w.Mushroom && x == config.MushroomCol && y == config.MushroomRow {
+		w.Mushroom = false
+		w.Chase, w.eatPoints = w.Tuning.ChaseTicks, config.EatPoints
+		w.addScore(config.MushroomPoints)
+		w.events = append(w.events, MushroomTaken)
+		return
+	}
+	if w.Chase > 0 {
+		if w.Chase--; w.Chase == 0 {
+			w.events = append(w.events, ChaseOver)
+		}
+	}
+}
+
+// checkCaught costs the dwarf a life if a goblin is touching it, or in a chase
+// eats the goblin, for a score that doubles each time. Boxes are inset so that
+// only a real overlap counts.
 func (w *World) checkCaught() {
 	reach := config.CellSize - 2*config.ContactInset
-	for i := range w.Goblins {
+	for i := len(w.Goblins) - 1; i >= 0; i-- {
 		g := &w.Goblins[i]
-		if abs(g.X-w.Dwarf.X) < reach && abs(g.Y-w.Dwarf.Y) < reach {
+		if abs(g.X-w.Dwarf.X) >= reach || abs(g.Y-w.Dwarf.Y) >= reach {
+			continue
+		}
+		if w.Chase == 0 {
 			w.catchDwarf()
 			return
 		}
+		w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
+		w.killed()
+		w.addScore(w.eatPoints)
+		w.eatPoints *= 2
+		w.events = append(w.events, GoblinEaten)
+	}
+}
+
+// killed counts a goblin destroyed. One destroyed in a chase is replaced by
+// another to come, so a chase can't clear the level (DESIGN §6).
+func (w *World) killed() {
+	w.Killed++
+	if w.Chase > 0 {
+		w.Tuning.GoblinTotal++
 	}
 }
 
 func (w *World) catchDwarf() {
 	w.Caught = true
+	if w.Chase > 0 {
+		w.Chase = 0
+		w.events = append(w.events, ChaseOver)
+	}
 	w.Over = w.session.LoseLife()
 	w.events = append(w.events, DwarfCaught)
 }
@@ -945,6 +999,7 @@ func (w *World) Respawn() {
 	w.Shot = nil
 	w.Recharge = 0
 	w.Caught = false
+	w.Mushroom, w.mushroomDone = false, false
 	w.spawnWait = w.Tuning.GoblinSpawnTicks
 	w.placeDwarf()
 }
