@@ -325,7 +325,7 @@ func TestSprites(t *testing.T) {
 	if size["shot"] != config.ShotSize {
 		t.Errorf("sprite %q is not %d square", "shot", config.ShotSize)
 	}
-	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "goblin", "goblin_scared", "troll", "troll_scared", "mushroom", "sack", "gold"} {
+	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "dwarf_dig", "goblin", "goblin_scared", "troll", "troll_scared", "mushroom", "sack", "gold"} {
 		if size[name] != config.CellSize {
 			t.Errorf("sprite %q is not %d square", name, config.CellSize)
 		}

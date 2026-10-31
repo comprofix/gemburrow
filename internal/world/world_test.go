@@ -233,3 +233,21 @@ func TestSameInputSameWorld(t *testing.T) {
 		t.Errorf("runs differ:\n%s\n%s", a, b)
 	}
 }
+
+func TestTheDwarfDigsOnlyWhileCuttingIntoEarth(t *testing.T) {
+	w, _ := newWorld(t, map[[2]int]byte{{0, 0}: config.LevelDwarf, {1, 0}: config.LevelTunnel})
+	w.Update(Right, false)
+	if w.Dwarf.Digging {
+		t.Error("digging along a tunnel")
+	}
+	run(w, Right, ticksPerCell-1)
+	w.Update(Right, false)
+	if !w.Dwarf.Digging {
+		t.Error("not digging into earth")
+	}
+	run(w, Right, ticksPerCell-1)
+	w.Update(None, false)
+	if w.Dwarf.Digging {
+		t.Error("still digging once stopped")
+	}
+}

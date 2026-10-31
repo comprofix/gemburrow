@@ -146,6 +146,7 @@ type Dwarf struct {
 	Facing    Dir  // the last direction pushed
 	FacesLeft bool // the last sideways direction, for mirroring the sprite
 	Pushing   bool // pushing a sack, at its speed, until next centred
+	Digging   bool // cutting into earth, until next centred
 }
 
 // Goblin is a hunter in the tunnels. X and Y are its top-left corner.
@@ -313,12 +314,14 @@ func (w *World) moveDwarf(dir Dir) {
 	d := &w.Dwarf
 	w.pressed = dir
 	if centred(d.X, d.Y) {
-		d.Moving, d.Pushing = None, false
+		d.Moving, d.Pushing, d.Digging = None, false, false
 		if dir != None {
 			d.face(dir)
 			if x, y := d.X/config.CellSize, d.Y/config.CellSize; inField(x, y, dir) {
 				if enters, pushing := w.meetSack(x, y, dir); enters {
 					d.Moving, d.Pushing = dir, pushing
+					dx, dy := dir.delta()
+					d.Digging = w.Earth(x+dx, y+dy)
 				}
 			}
 		}

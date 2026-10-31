@@ -146,7 +146,11 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	n := at(d.X, d.Y)
 	n.mirror = d.FacesLeft
 	if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
-		drawDwarf(n, (d.X+d.Y)/stepPixels)
+		pick := pickOnBack
+		if d.Digging {
+			pick = pickUp + int(p.ticks/digTicks)%2
+		}
+		drawDwarf(n, (d.X+d.Y)/stepPixels, pick)
 	}
 	if debug.Enabled {
 		debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
@@ -257,7 +261,24 @@ func drawGold(n pen) {
 	n.circle(21, 15, 0.8, resurrect64.White)
 }
 
-func drawDwarf(n pen, frame int) {
+// Where the dwarf's pick-axe is: on their back, or swung up or down to dig.
+const (
+	pickOnBack = iota
+	pickUp
+	pickDown
+)
+
+// drawPick draws a pick-axe from the handle's end at (x0, y0) to its head at
+// (x1, y1), whose blade runs from (ax, ay) to (bx, by).
+func drawPick(n pen, x0, y0, x1, y1, ax, ay, bx, by float64) {
+	n.line(x0, y0, x1, y1, 1.8, resurrect64.Bark)
+	n.poly(resurrect64.Fog, ax, ay, x1, y1-1, bx, by, x1, y1+1)
+}
+
+func drawDwarf(n pen, frame, pick int) {
+	if pick == pickOnBack {
+		drawPick(n, 8, 24, 4, 7, 0, 9, 9, 3.5)
+	}
 	stride := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
 	n.rect(9+stride, 26, 7, 5, 1.5, resurrect64.Ink)
 	n.rect(17-stride, 26, 7, 5, 1.5, resurrect64.Ink)
@@ -269,6 +290,12 @@ func drawDwarf(n pen, frame int) {
 	n.circle(21, 9, 1.2, resurrect64.Ink)
 	n.rect(7, 6, 18, 3, 1, resurrect64.Slate)
 	n.poly(resurrect64.Fog, 8, 7, 9, 3, 13, 1, 19, 1, 23, 3, 24, 7)
+	switch pick {
+	case pickUp:
+		drawPick(n, 25, 19, 28, 6, 23, 7, 32, 3)
+	case pickDown:
+		drawPick(n, 25, 18, 30, 25, 26, 30, 32, 21)
+	}
 }
 
 func drawGoblin(n pen, frame int, afraid bool) {

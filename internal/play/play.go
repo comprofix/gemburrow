@@ -30,6 +30,7 @@ const (
 	goblinTicks = 12 // ticks between the goblin's frames
 	stepPixels  = 8  // pixels the dwarf moves between walking frames
 	flashTicks  = 6  // the caught dwarf flashes at this rate
+	digTicks    = 8  // ticks between the pick-axe's swings
 	shakeTicks  = 14
 	shakePixels = 3
 	// A wobbling sack shifts this far, this often, and gold flickers for its
@@ -256,7 +257,11 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	d := w.Dwarf
 	dx, dy := config.FieldX+d.X, config.FieldY+d.Y
 	if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
-		sheet.Sprite("dwarf").Draw(dst, (d.X+d.Y)/stepPixels, float64(dx), float64(dy), d.FacesLeft)
+		if d.Digging {
+			sheet.Sprite("dwarf_dig").Draw(dst, int(p.ticks/digTicks), float64(dx), float64(dy), d.FacesLeft)
+		} else {
+			sheet.Sprite("dwarf").Draw(dst, (d.X+d.Y)/stepPixels, float64(dx), float64(dy), d.FacesLeft)
+		}
 	}
 	if debug.Enabled {
 		debug.Box(dst, float64(dx), float64(dy), config.CellSize, config.CellSize, sc.Highlight)
