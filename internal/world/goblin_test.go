@@ -90,6 +90,7 @@ func TestGoblinNeverEntersEarth(t *testing.T) {
 	cells := corridor(map[[2]int]byte{{0, 0}: config.LevelDwarf}, 3, 5, 8)
 	w, _ := newWorld(t, cells)
 	w.Tuning.GoblinTotal = 1
+	w.Tuning.DiggerEveryTicks = 0
 	addGoblin(w, 6, 3)
 	moved := false
 	for range 500 {
@@ -111,7 +112,7 @@ func TestGoblinFollowsNewTunnels(t *testing.T) {
 	addGoblin(w, 3, 2)
 	// Digging down joins the dwarf's cell to the goblin's tunnel.
 	run(w, Down, 2*ticksPerCell-1)
-	w.measure()
+	w.measure(false)
 	if d := w.dist[2*config.FieldCols+3]; d < 0 {
 		t.Errorf("no way through the dug tunnel: distance %d", d)
 	}

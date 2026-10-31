@@ -32,6 +32,11 @@ const (
 	flashTicks  = 6  // the caught dwarf flashes at this rate
 	shakeTicks  = 14
 	shakePixels = 3
+	// A wobbling sack shifts this far, this often, and gold flickers for its
+	// last goldWarnTicks.
+	wobblePixels  = 1
+	wobbleTicks   = 4
+	goldWarnTicks = config.TPS
 	// shotReadyX places the HUD's mark that the shot is ready, between the
 	// level and the lives.
 	shotReadyX = 416
@@ -107,7 +112,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 	}
 	for _, e := range p.world.Update(heldDir(in), in.Held(Fire)) {
 		switch e {
-		case world.Dug:
+		case world.Dug, world.SackPushed:
 			ctx.Audio.PlayEffect(Dig)
 		case world.JewelTaken:
 			ctx.Audio.PlayEffect(Jewel)
@@ -116,8 +121,16 @@ func (p *Play) Update(ctx *scene.Context) error {
 			p.clear = config.LevelClearTicks
 		case world.ShotFired:
 			ctx.Audio.PlayEffect(Fired)
-		case world.GoblinShot:
+		case world.GoblinShot, world.GoblinCrushed:
 			ctx.Audio.PlayEffect(GoblinDown)
+		case world.SackWobbling:
+			ctx.Audio.PlayEffect(SackShake)
+		case world.SackLanded:
+			ctx.Audio.PlayEffect(SackThud)
+		case world.SackBurst:
+			ctx.Audio.PlayEffect(SackBurst)
+		case world.GoldTaken:
+			ctx.Audio.PlayEffect(GoldTaken)
 		case world.ExtraLife:
 			ctx.Audio.PlayEffect(LifeGained)
 		case world.DwarfCaught:
@@ -182,9 +195,30 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		}
 	}
 
+	// The gold, flickering as it runs out, and the sacks, shaking before they
+	// fall.
+	gold := sheet.Sprite("gold")
+	for _, g := range w.Gold {
+		if g.Ticks > goldWarnTicks || (p.ticks/flashTicks)%2 == 0 {
+			gold.Draw(dst, 0, float64(config.FieldX+g.X*config.CellSize), float64(config.FieldY+g.Y*config.CellSize), false)
+		}
+	}
+	sack := sheet.Sprite("sack")
+	for _, s := range w.Sacks {
+		sx := config.FieldX + s.X
+		if s.State == world.SackWobble {
+			sx += wobblePixels * (int(p.ticks/wobbleTicks)%2*2 - 1)
+		}
+		sack.Draw(dst, 0, float64(sx), float64(config.FieldY+s.Y), false)
+	}
+
 	// The goblins and the shot.
-	goblin := sheet.Sprite("goblin")
+	walker, digger := sheet.Sprite("goblin"), sheet.Sprite("goblin_digger")
 	for i, g := range w.Goblins {
+		goblin := walker
+		if g.Digging > 0 {
+			goblin = digger
+		}
 		goblin.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
 		if debug.Enabled {
 			debug.Box(dst, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), config.CellSize, config.CellSize, sc.Highlight)

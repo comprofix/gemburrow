@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strings"
 
 	"github.com/comprofix/gemburrow/internal/config"
@@ -69,6 +70,12 @@ const (
 	GoblinShot
 	DwarfCaught
 	ExtraLife
+	SackWobbling
+	SackPushed
+	SackLanded
+	SackBurst
+	GoblinCrushed
+	GoldTaken
 )
 
 // Level is a parsed layout.
@@ -76,6 +83,7 @@ type Level struct {
 	earth, jewels  []bool
 	startX, startY int // the dwarf's start, in cells
 	spawnX, spawnY int // where goblins enter, in cells
+	sacks          [][2]int
 }
 
 // Parse reads a layout (see config.Levels).
@@ -107,6 +115,9 @@ func Parse(rows []string) (*Level, error) {
 			case config.LevelSpawn:
 				l.spawnX, l.spawnY = x, y
 				spawns++
+			case config.LevelSack:
+				l.earth[i] = true
+				l.sacks = append(l.sacks, [2]int{x, y})
 			default:
 				return nil, fmt.Errorf("world: level cell (%d, %d) is %q", x, y, c)
 			}
@@ -130,6 +141,7 @@ type Dwarf struct {
 	Moving    Dir
 	Facing    Dir  // the last direction pushed
 	FacesLeft bool // the last sideways direction, for mirroring the sprite
+	Pushing   bool // pushing a sack, at its speed, until next centred
 }
 
 // Goblin is a hunter in the tunnels. X and Y are its top-left corner.
@@ -137,6 +149,35 @@ type Goblin struct {
 	X, Y      int
 	Moving    Dir
 	FacesLeft bool
+	Digging   int  // ticks left as a digger, which can cut through earth
+	Pushing   bool // pushing a sack, at its speed, until next centred
+}
+
+// SackState is what a sack is doing.
+type SackState int
+
+// The sack states.
+const (
+	SackResting SackState = iota
+	SackWobble
+	SackSliding
+	SackFalling
+)
+
+// Sack is a treasure sack (DESIGN §6, D6). X and Y are its top-left corner.
+type Sack struct {
+	X, Y   int
+	State  SackState
+	Wobble int  // ticks left of wobbling
+	Slide  Dir  // the way it is being pushed
+	Fallen int  // pixels fallen so far
+	gone   bool // to be removed at the end of moveSacks
+}
+
+// Gold is a burst sack's treasure, lying in a cell for a limited time.
+type Gold struct {
+	X, Y  int // its cell
+	Ticks int // ticks left
 }
 
 // Shot is the dwarf's shot in flight. X and Y are its centre.
@@ -151,6 +192,8 @@ type World struct {
 
 	Dwarf       Dwarf
 	Goblins     []Goblin
+	Sacks       []Sack
+	Gold        []Gold
 	Shot        *Shot // nil when none is in flight
 	Recharge    int   // ticks until the dwarf can fire again
 	JewelsLeft  int
@@ -166,6 +209,8 @@ type World struct {
 	earth     []bool
 	jewels    []bool
 	spawnWait int
+	digWait   int
+	pressed   Dir // the direction pushed this tick, for holding up a sack
 	cleared   bool
 	events    []Event
 	dist      []int // scratch: tunnel distance from the dwarf
@@ -182,9 +227,13 @@ func New(s *session.Session, l *Level, t config.Tuning, rng *rand.Rand) *World {
 		earth:     append([]bool(nil), l.earth...),
 		jewels:    append([]bool(nil), l.jewels...),
 		spawnWait: t.GoblinSpawnTicks,
+		digWait:   t.DiggerEveryTicks,
 		dist:      make([]int, len(l.earth)),
 	}
 	w.placeDwarf()
+	for _, s := range l.sacks {
+		w.Sacks = append(w.Sacks, Sack{X: s[0] * config.CellSize, Y: s[1] * config.CellSize})
+	}
 	for _, j := range w.jewels {
 		if j {
 			w.JewelsLeft++
@@ -224,11 +273,14 @@ func (w *World) Update(dir Dir, fire bool) []Event {
 		return w.events
 	}
 	w.spawn()
+	w.chooseDigger()
 	for i := range w.Goblins {
 		w.moveGoblin(&w.Goblins[i])
 	}
 	w.shotHits()
-	if w.checkCleared() {
+	w.moveSacks()
+	w.updateGold()
+	if w.checkCleared() || w.Caught {
 		return w.events
 	}
 	w.checkCaught()
@@ -250,21 +302,28 @@ func (w *World) checkCleared() bool {
 // taken, once the dwarf's centre is inside it.
 func (w *World) moveDwarf(dir Dir) {
 	d := &w.Dwarf
+	w.pressed = dir
 	if centred(d.X, d.Y) {
-		d.Moving = None
+		d.Moving, d.Pushing = None, false
 		if dir != None {
 			d.face(dir)
-			if inField(d.X/config.CellSize, d.Y/config.CellSize, dir) {
-				d.Moving = dir
+			if x, y := d.X/config.CellSize, d.Y/config.CellSize; inField(x, y, dir) {
+				if enters, pushing := w.meetSack(x, y, dir); enters {
+					d.Moving, d.Pushing = dir, pushing
+				}
 			}
 		}
 	} else if dir != None && dir == d.Moving.opposite() {
 		d.face(dir)
 		d.Moving = dir
 	}
+	speed := config.DwarfSpeed
+	if d.Pushing {
+		speed = w.pusherSpeed(d.X, d.Y, d.Moving)
+	}
 	dx, dy := d.Moving.delta()
-	d.X += dx * config.DwarfSpeed
-	d.Y += dy * config.DwarfSpeed
+	d.X += dx * speed
+	d.Y += dy * speed
 	w.enter(d.cell())
 }
 
@@ -338,7 +397,7 @@ func (w *World) moveShot() {
 	s.X += dx * config.ShotSpeed
 	s.Y += dy * config.ShotSpeed
 	if s.X < 0 || s.Y < 0 || s.X >= config.FieldCols*config.CellSize || s.Y >= config.FieldRows*config.CellSize ||
-		w.Earth(s.X/config.CellSize, s.Y/config.CellSize) {
+		w.Earth(s.X/config.CellSize, s.Y/config.CellSize) || w.stopsShot(s.X, s.Y) {
 		w.Shot = nil
 		return
 	}
@@ -392,10 +451,41 @@ func abs(v int) int {
 	return v
 }
 
-// moveGoblin moves a goblin along the tunnels, choosing its way each time it
-// is centred on a cell.
+// chooseDigger turns a walking goblin into a digger for a short time, so that
+// tunnels are never completely safe (DESIGN D8).
+func (w *World) chooseDigger() {
+	if w.Tuning.DiggerEveryTicks <= 0 {
+		return
+	}
+	if w.digWait > 0 {
+		w.digWait--
+		return
+	}
+	ways := 0
+	var chosen *Goblin
+	for i := range w.Goblins {
+		if g := &w.Goblins[i]; g.Digging == 0 {
+			ways++
+			if w.rng.IntN(ways) == 0 {
+				chosen = g
+			}
+		}
+	}
+	if chosen != nil {
+		chosen.Digging = w.Tuning.DiggerTicks
+		w.digWait = w.Tuning.DiggerEveryTicks
+	}
+}
+
+// moveGoblin moves a goblin, choosing its way each time it is centred on a
+// cell. A cell of earth it reaches, as a digger or just after being one, is
+// dug out, which can bring down a sack above it. A walker pushes a sack it
+// walks into sideways; a digger destroys any sack it touches (DESIGN §6). Any
+// goblin takes gold it reaches, and no one scores for it.
 func (w *World) moveGoblin(g *Goblin) {
+	g.Digging = max(g.Digging-1, 0)
 	if centred(g.X, g.Y) {
+		g.Pushing = false
 		g.Moving = w.chooseWay(g)
 		switch g.Moving {
 		case Left:
@@ -403,22 +493,42 @@ func (w *World) moveGoblin(g *Goblin) {
 		case Right:
 			g.FacesLeft = false
 		}
+		if g.Digging == 0 && g.Moving != None {
+			enters, pushing := w.meetSack(g.X/config.CellSize, g.Y/config.CellSize, g.Moving)
+			if !enters {
+				g.Moving = None
+			}
+			g.Pushing = pushing
+		}
+	}
+	speed := w.Tuning.GoblinSpeed
+	if g.Pushing {
+		speed = w.pusherSpeed(g.X, g.Y, g.Moving)
 	}
 	dx, dy := g.Moving.delta()
-	g.X += dx * w.Tuning.GoblinSpeed
-	g.Y += dy * w.Tuning.GoblinSpeed
+	g.X += dx * speed
+	g.Y += dy * speed
+	cx, cy := (g.X+config.CellSize/2)/config.CellSize, (g.Y+config.CellSize/2)/config.CellSize
+	w.earth[cy*config.FieldCols+cx] = false
+	if g.Digging > 0 {
+		w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
+			return abs(s.X-g.X) < config.CellSize && abs(s.Y-g.Y) < config.CellSize
+		})
+	}
+	w.Gold = slices.DeleteFunc(w.Gold, func(gold Gold) bool { return gold.X == cx && gold.Y == cy })
 }
 
-// chooseWay takes a shortest way through the tunnels to the dwarf, with ties
-// broken at random. With no way there, the goblin wanders, turning back only
-// at a dead end.
+// chooseWay takes a shortest way to the dwarf, through the tunnels or, for a
+// digger, through earth too, with ties broken at random. With no way there,
+// the goblin wanders, turning back only at a dead end.
 func (w *World) chooseWay(g *Goblin) Dir {
-	w.measure()
+	digs := g.Digging > 0
+	w.measure(digs)
 	x, y := g.X/config.CellSize, g.Y/config.CellSize
 	best, ways, choice := -1, 0, None
 	back, canBack := g.Moving.opposite(), false
 	for _, dir := range dirs {
-		if !w.walkable(x, y, dir) {
+		if !w.walkable(x, y, dir, digs) {
 			continue
 		}
 		if dir == back {
@@ -444,7 +554,7 @@ func (w *World) chooseWay(g *Goblin) Dir {
 	}
 	ways, choice = 0, None
 	for _, dir := range dirs {
-		if dir != back && w.walkable(x, y, dir) {
+		if dir != back && w.walkable(x, y, dir, digs) {
 			ways++
 			if w.rng.IntN(ways) == 0 {
 				choice = dir
@@ -458,18 +568,26 @@ func (w *World) chooseWay(g *Goblin) Dir {
 }
 
 // walkable reports whether a goblin can step from cell (x, y) in direction
-// dir: goblins keep to the tunnels.
-func (w *World) walkable(x, y int, dir Dir) bool {
+// dir: goblins keep to the tunnels unless they dig. A walker can't go up or
+// down through a sack, but may try to push one sideways, and a digger goes
+// where it likes.
+func (w *World) walkable(x, y int, dir Dir, digs bool) bool {
 	if !inField(x, y, dir) {
 		return false
 	}
+	if digs {
+		return true
+	}
 	dx, dy := dir.delta()
+	if (dir == Up || dir == Down) && w.sackAt(x+dx, y+dy) {
+		return false
+	}
 	return !w.Earth(x+dx, y+dy)
 }
 
-// measure fills w.dist with each cell's distance from the dwarf through the
-// tunnels, or -1 if there is no way.
-func (w *World) measure() {
+// measure fills w.dist with each cell's distance from the dwarf, or -1 if
+// there is no way.
+func (w *World) measure(digs bool) {
 	for i := range w.dist {
 		w.dist[i] = -1
 	}
@@ -481,7 +599,7 @@ func (w *World) measure() {
 		i := w.queue[head]
 		cx, cy := i%config.FieldCols, i/config.FieldCols
 		for _, dir := range dirs {
-			if !w.walkable(cx, cy, dir) {
+			if !w.walkable(cx, cy, dir, digs) {
 				continue
 			}
 			dx, dy := dir.delta()
@@ -501,23 +619,309 @@ func (w *World) checkCaught() {
 	for i := range w.Goblins {
 		g := &w.Goblins[i]
 		if abs(g.X-w.Dwarf.X) < reach && abs(g.Y-w.Dwarf.Y) < reach {
-			w.Caught = true
-			w.Over = w.session.LoseLife()
-			w.events = append(w.events, DwarfCaught)
+			w.catchDwarf()
 			return
 		}
 	}
 }
 
+func (w *World) catchDwarf() {
+	w.Caught = true
+	w.Over = w.session.LoseLife()
+	w.events = append(w.events, DwarfCaught)
+}
+
+// sackAt reports whether a sack, not falling, fills cell (x, y). A sliding
+// sack fills both cells it spans. A falling sack blocks nothing: it crushes
+// what it meets instead.
+func (w *World) sackAt(x, y int) bool {
+	for i := range w.Sacks {
+		s := &w.Sacks[i]
+		if !s.gone && s.State != SackFalling && s.Y == y*config.CellSize &&
+			(s.X/config.CellSize == x || (s.X+config.CellSize-1)/config.CellSize == x) {
+			return true
+		}
+	}
+	return false
+}
+
+// stopsShot reports whether a sack, falling or not, or gold is at the point
+// (x, y).
+func (w *World) stopsShot(x, y int) bool {
+	inside := func(left, top int) bool {
+		return x >= left && x < left+config.CellSize && y >= top && y < top+config.CellSize
+	}
+	for i := range w.Sacks {
+		if inside(w.Sacks[i].X, w.Sacks[i].Y) {
+			return true
+		}
+	}
+	for _, g := range w.Gold {
+		if inside(g.X*config.CellSize, g.Y*config.CellSize) {
+			return true
+		}
+	}
+	return false
+}
+
+// meetSack reports whether a walker, centred on cell (x, y), can go in
+// direction dir given any sack in the next cell, and whether it pushes one to
+// do so. Nothing can go up or down through a sack (DESIGN §6).
+func (w *World) meetSack(x, y int, dir Dir) (enters, pushing bool) {
+	dx, dy := dir.delta()
+	if !w.sackAt(x+dx, y+dy) {
+		return true, false
+	}
+	if dir != Left && dir != Right {
+		return false, false
+	}
+	left := (x + dx) * config.CellSize
+	for i := range w.Sacks {
+		s := &w.Sacks[i]
+		if s.State != SackFalling && s.Y == y*config.CellSize && abs(s.X-left) < config.CellSize {
+			if !w.pushSack(s, dir) {
+				return false, false
+			}
+		}
+	}
+	return true, true
+}
+
+// pusherSpeed is how far something pushing a sack moves this tick: at the
+// sack's speed, unless the sack, stopped ahead of it, would be overlapped.
+func (w *World) pusherSpeed(x, y int, dir Dir) int {
+	dx, _ := dir.delta()
+	for i := range w.Sacks {
+		s := &w.Sacks[i]
+		if s.State != SackFalling && abs(s.Y-y) < config.CellSize &&
+			(s.X-x)*dx > 0 && abs(s.X-x) < config.CellSize {
+			return 0
+		}
+	}
+	return config.SackSlideSpeed
+}
+
+// blocksSack reports whether something at (x, y) is in the way of a sack in
+// row pixel sy moving to column pixel nx in the direction whose sign is dx.
+func blocksSack(x, y, nx, sy, dx int) bool {
+	return abs(y-sy) < config.CellSize && (x-nx)*dx >= 0 && abs(x-nx) < config.CellSize
+}
+
+// pushSack starts or keeps sack s sliding in direction dir, for its next step,
+// and reports whether it can go (DESIGN §6). The edge of the field, the dwarf
+// or a goblin stops it. Earth and jewels don't, and it pushes other sacks
+// ahead of it unless they can't go. A falling sack ignores the push. A sack
+// stopped on a cell comes to rest, and falls at once with nothing under it.
+func (w *World) pushSack(s *Sack, dir Dir) bool {
+	if s.State == SackFalling {
+		return true
+	}
+	if (s.X == 0 && dir == Left) || (s.X == (config.FieldCols-1)*config.CellSize && dir == Right) {
+		return false
+	}
+	dx, _ := dir.delta()
+	nx := s.X + dx*config.SackSlideSpeed
+	can := !blocksSack(w.Dwarf.X, w.Dwarf.Y, nx, s.Y, dx)
+	for i := range w.Goblins {
+		can = can && !blocksSack(w.Goblins[i].X, w.Goblins[i].Y, nx, s.Y, dx)
+	}
+	for i := range w.Sacks {
+		o := &w.Sacks[i]
+		if can && o != s && !o.gone && o.State != SackFalling &&
+			blocksSack(o.X, o.Y, nx, s.Y, dx) && !w.pushSack(o, dir) {
+			can = false
+		}
+	}
+	if !can {
+		if s.X%config.CellSize == 0 {
+			w.settle(s)
+		}
+		return false
+	}
+	if s.State != SackSliding {
+		w.events = append(w.events, SackPushed)
+	}
+	s.State, s.Slide, s.Wobble = SackSliding, dir, 0
+	return true
+}
+
+// settle ends a sideways move on a cell. With nothing under it, a sack falls
+// at once, without wobbling.
+func (w *World) settle(s *Sack) {
+	s.Slide = None
+	if w.supported(s) {
+		s.State, s.Wobble = SackResting, 0
+		return
+	}
+	w.startFall(s)
+}
+
+func (w *World) startFall(s *Sack) {
+	s.State, s.Wobble = SackFalling, 0
+	w.earth[s.Y/config.CellSize*config.FieldCols+s.X/config.CellSize] = false
+}
+
+// supported reports whether something holds up a sack centred on a cell: solid
+// earth or the bottom of the field. Another sack doesn't: only the cell counts.
+func (w *World) supported(s *Sack) bool {
+	x, y := s.X/config.CellSize, s.Y/config.CellSize
+	return y+1 >= config.FieldRows || w.Earth(x, y+1)
+}
+
+// holdsUp reports whether the dwarf, trying to move up or down in the sack's
+// column, in its row or just under it, keeps it from starting to wobble.
+func (w *World) holdsUp(s *Sack) bool {
+	d := &w.Dwarf
+	if w.pressed != Up && w.pressed != Down && d.Moving != Up && d.Moving != Down {
+		return false
+	}
+	row, sackRow := d.Y/config.CellSize, s.Y/config.CellSize
+	return d.X/config.CellSize == s.X/config.CellSize && (row == sackRow || row == sackRow+1)
+}
+
+// moveSacks runs the sacks (DESIGN §6, D6). A sack with nothing under it
+// wobbles as a warning, then falls, crushing what it meets. One that lands
+// after falling more than a cell bursts into gold.
+func (w *World) moveSacks() {
+	for i := range w.Sacks {
+		s := &w.Sacks[i]
+		if s.gone {
+			continue
+		}
+		switch s.State {
+		case SackResting:
+			if !w.supported(s) && !w.holdsUp(s) {
+				s.State, s.Wobble = SackWobble, config.SackWobbleTicks
+				w.events = append(w.events, SackWobbling)
+			}
+		case SackWobble:
+			s.Wobble--
+			if s.Wobble <= 0 {
+				w.startFall(s)
+			}
+		case SackSliding:
+			w.slide(s)
+		case SackFalling:
+			w.fall(s)
+		}
+	}
+	w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool { return s.gone })
+}
+
+// slide moves a sack one step. If something has got in its way it turns back,
+// which takes it to the cell it came from. It removes any gold it reaches.
+func (w *World) slide(s *Sack) {
+	if !w.pushSack(s, s.Slide) {
+		if s.State == SackSliding {
+			s.Slide = s.Slide.opposite()
+		}
+		return
+	}
+	dx, _ := s.Slide.delta()
+	s.X += dx * config.SackSlideSpeed
+	w.Gold = slices.DeleteFunc(w.Gold, func(g Gold) bool {
+		return g.Y*config.CellSize == s.Y && abs(g.X*config.CellSize-s.X) < config.CellSize
+	})
+	if s.X%config.CellSize == 0 {
+		w.settle(s)
+	}
+}
+
+// fall moves a falling sack one step. It destroys any jewel in the cell it is
+// entering, turns back goblins climbing in its column, and goes through other
+// sacks, destroying those and any gold it is touching where it lands.
+func (w *World) fall(s *Sack) {
+	s.Y += config.SackFallSpeed
+	s.Fallen += config.SackFallSpeed
+	x, y := s.X/config.CellSize, (s.Y+config.CellSize-1)/config.CellSize
+	w.earth[y*config.FieldCols+x] = false
+	if w.Jewel(x, y) {
+		w.jewels[y*config.FieldCols+x] = false
+		w.JewelsLeft--
+	}
+	for i := range w.Goblins {
+		if g := &w.Goblins[i]; g.X/config.CellSize == x && g.Moving == Up {
+			g.Moving = Down
+		}
+	}
+	w.crush(s)
+	if !centred(s.X, s.Y) || !w.supported(s) {
+		return
+	}
+	for i := range w.Sacks {
+		if o := &w.Sacks[i]; o != s && abs(o.X-s.X) < config.CellSize && abs(o.Y-s.Y) < config.CellSize {
+			o.gone = true
+		}
+	}
+	w.Gold = slices.DeleteFunc(w.Gold, func(g Gold) bool {
+		return abs(g.X*config.CellSize-s.X) < config.CellSize && abs(g.Y*config.CellSize-s.Y) < config.CellSize
+	})
+	if s.Fallen > config.CellSize {
+		w.Gold = append(w.Gold, Gold{X: s.X / config.CellSize, Y: s.Y / config.CellSize, Ticks: config.GoldTicks})
+		w.events = append(w.events, SackBurst)
+		s.gone = true
+		return
+	}
+	s.State, s.Fallen = SackResting, 0
+	w.events = append(w.events, SackLanded)
+}
+
+// crush destroys the goblins, and catches the dwarf, under a falling sack.
+// Anything above the sack's top is safe.
+func (w *World) crush(s *Sack) {
+	reach := config.CellSize - 2*config.ContactInset
+	touches := func(x, y int) bool {
+		return abs(x-s.X) < reach && abs(y-s.Y) < reach && y >= s.Y
+	}
+	for i := len(w.Goblins) - 1; i >= 0; i-- {
+		if g := &w.Goblins[i]; touches(g.X, g.Y) {
+			w.Goblins = append(w.Goblins[:i], w.Goblins[i+1:]...)
+			w.Killed++
+			w.addScore(config.GoblinPoints)
+			w.events = append(w.events, GoblinCrushed)
+		}
+	}
+	if !w.Caught && touches(w.Dwarf.X, w.Dwarf.Y) {
+		w.catchDwarf()
+	}
+}
+
+// updateGold ages the gold and lets the dwarf collect what it is standing on.
+// Gold with the cell under it dug out soon goes.
+func (w *World) updateGold() {
+	x, y := w.Dwarf.cell()
+	kept := w.Gold[:0]
+	for _, g := range w.Gold {
+		if g.Y+1 < config.FieldRows && !w.Earth(g.X, g.Y+1) {
+			g.Ticks = min(g.Ticks, config.GoldDugUnderTicks)
+		}
+		g.Ticks--
+		switch {
+		case g.X == x && g.Y == y:
+			w.addScore(config.GoldPoints)
+			w.events = append(w.events, GoldTaken)
+		case g.Ticks > 0:
+			kept = append(kept, g)
+		}
+	}
+	w.Gold = kept
+}
+
 // Respawn puts the dwarf back at its start after being caught. What it dug
 // and took stays as it is. The goblins on the field go back to wait their turn.
+// All gold goes, as does any sack on the move, wobbling, or on the dwarf's start.
 func (w *World) Respawn() {
+	w.Gold = w.Gold[:0]
+	w.Sacks = slices.DeleteFunc(w.Sacks, func(s Sack) bool {
+		return s.State != SackResting || (s.X == w.level.startX*config.CellSize && s.Y == w.level.startY*config.CellSize)
+	})
 	w.Spawned -= len(w.Goblins)
 	w.Goblins = w.Goblins[:0]
 	w.Shot = nil
 	w.Recharge = 0
 	w.Caught = false
 	w.spawnWait = w.Tuning.GoblinSpawnTicks
+	w.digWait = w.Tuning.DiggerEveryTicks
 	w.placeDwarf()
 }
 

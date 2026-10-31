@@ -23,8 +23,20 @@ func TestGoblinSpeedDividesTheCell(t *testing.T) {
 	}
 }
 
+func TestSackFallSpeedDividesTheCell(t *testing.T) {
+	if CellSize%SackFallSpeed != 0 {
+		t.Errorf("speed %d never lands on a cell of %d", SackFallSpeed, CellSize)
+	}
+}
+
 func TestLevelForRepeats(t *testing.T) {
 	if &LevelFor(1)[0] != &LevelFor(len(Levels) + 1)[0] {
 		t.Error("levels do not repeat after the last")
+	}
+}
+
+func TestSackSlideSpeedIsHalfWalking(t *testing.T) {
+	if SackSlideSpeed*2 != DwarfSpeed || CellSize%SackSlideSpeed != 0 {
+		t.Errorf("slide speed %d, dwarf speed %d", SackSlideSpeed, DwarfSpeed)
 	}
 }

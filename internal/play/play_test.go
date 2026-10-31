@@ -3,6 +3,8 @@ package play
 import (
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -54,7 +56,18 @@ func sweep(h *scenetest.Harness, p *Play) {
 
 func TestClearingALevelGoesToTheNext(t *testing.T) {
 	h, p := start(t)
-	p.World().Tuning.GoblinTotal = 0 // this test is about the digging
+	// This test is about the digging: no goblins, and no sacks in the way.
+	rows := slices.Clone(config.LevelFor(1))
+	for i, r := range rows {
+		rows[i] = strings.ReplaceAll(r, string(rune(config.LevelSack)), string(rune(config.LevelEarth)))
+	}
+	l, err := world.Parse(rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tuning := config.BaseTuning
+	tuning.GoblinTotal = 0
+	p.world = world.New(h.Ctx.Session, l, tuning, h.Ctx.RNG)
 	jewels := p.World().JewelsLeft
 	sweep(h, p)
 	if !p.World().Cleared() {
@@ -110,6 +123,51 @@ func summary(h *scenetest.Harness, p *Play) string {
 	w := p.World()
 	return fmt.Sprintf("score %d  lives %d  jewels left %d  level %d\ndwarf (%d, %d)  caught %v  over %v\ngoblins %v  entered %d  killed %d\n%v",
 		h.Ctx.Session.Score, h.Ctx.Session.Lives, w.JewelsLeft, p.Level(), w.Dwarf.X, w.Dwarf.Y, w.Caught, w.Over, w.Goblins, w.Spawned, w.Killed, w)
+}
+
+// TestGoldenSackDrop digs out under a sack with a goblin coming along the
+// tunnel below, gets clear, lets the sack crush the goblin and burst, then
+// collects the gold.
+func TestGoldenSackDrop(t *testing.T) {
+	h, p := start(t)
+	rows := []string{
+		"##################",
+		"##################",
+		"##################",
+		"##################",
+		"#####$############",
+		"##################",
+		"##################",
+		"=====D============",
+		"##################",
+		"####*############G",
+	}
+	l, err := world.Parse(rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tuning := config.BaseTuning
+	tuning.GoblinTotal, tuning.DiggerEveryTicks = 2, 0
+	tuning.GoblinSpawnTicks = 100 * config.TPS
+	p.world = world.New(h.Ctx.Session, l, tuning, h.Ctx.RNG)
+	w := p.World()
+	w.Goblins = []world.Goblin{{X: 1 * config.CellSize, Y: 7 * config.CellSize}}
+	w.Spawned = 1
+
+	walk(h, p, ebiten.KeyArrowUp, 2)
+	walk(h, p, ebiten.KeyArrowDown, 2)
+	walk(h, p, ebiten.KeyArrowRight, 3)
+	for len(w.Sacks) > 0 {
+		h.Ticks(1)
+	}
+	if w.Killed != 1 || len(w.Gold) != 1 {
+		t.Fatalf("killed %d, gold %v:\n%v", w.Killed, w.Gold, w)
+	}
+	walk(h, p, ebiten.KeyArrowLeft, 3)
+	if h.Ctx.Session.Score != config.GoblinPoints+config.GoldPoints {
+		t.Errorf("score %d", h.Ctx.Session.Score)
+	}
+	scenetest.Golden(t, "sackdrop", summary(h, p))
 }
 
 // TestGoldenChase walks the open tunnel, fires, then stands still until the
@@ -200,7 +258,7 @@ func TestSprites(t *testing.T) {
 	if size["shot"] != config.ShotSize {
 		t.Errorf("sprite %q is not %d square", "shot", config.ShotSize)
 	}
-	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "goblin"} {
+	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "goblin", "goblin_digger", "sack", "gold"} {
 		if size[name] != config.CellSize {
 			t.Errorf("sprite %q is not %d square", name, config.CellSize)
 		}

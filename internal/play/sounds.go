@@ -40,7 +40,30 @@ var (
 		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(12), Sustain: 0.5, Release: audio.Ticks(6), Volume: 0.8},
 		Notes: audio.Notes("G5:5 C6:5 E6:5 G6:16"),
 	}}
+	// SackShake is a sack starting to wobble, the warning before it falls
+	// (DESIGN §8).
+	SackShake = &audio.Effect{Name: "sack wobble", Channel: 2, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Triangle, Decay: audio.Ticks(10), Sustain: 0.6, Release: audio.Ticks(4), Volume: 0.9},
+		Notes: audio.Notes("C3:5 D3:5 C3:5 D3:5 C3:5 D3:5"),
+	}}
+	// SackThud is a sack landing whole.
+	SackThud = &audio.Effect{Name: "sack thud", Channel: 3, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Noise, Decay: audio.Ticks(10), Release: audio.Ticks(2), Volume: 0.8},
+		Notes: []audio.Note{{Hz: 300, Dur: audio.Ticks(10)}},
+	}}
+	// SackBurst is a sack bursting into gold.
+	SackBurst = &audio.Effect{Name: "sack burst", Channel: 1, Priority: 4, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse25, Decay: audio.Ticks(10), Sustain: 0.3, Release: audio.Ticks(4), Volume: 0.8},
+		Notes: audio.Notes("C6:3 E6:3 G6:3 C7:8"),
+	}}
+	// GoldTaken is gold collected.
+	GoldTaken = &audio.Effect{Name: "gold", Channel: 1, Priority: 3, Part: audio.Part{
+		Voice: audio.Voice{Wave: audio.Pulse50, Decay: audio.Ticks(10), Sustain: 0.4, Release: audio.Ticks(4), Volume: 0.8},
+		Notes: audio.Notes("G6:4 B6:4 D7:10"),
+	}}
 )
 
 // Sounds are the game's sounds, for the sound test.
-var Sounds = audio.Bank{Effects: []*audio.Effect{Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained}}
+var Sounds = audio.Bank{Effects: []*audio.Effect{
+	Dig, Jewel, LevelClear, Fired, GoblinDown, Caught, LifeGained, SackShake, SackThud, SackBurst, GoldTaken,
+}}
