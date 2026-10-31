@@ -141,11 +141,13 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 		drawShot(dst, n.x, n.y, float64(s*config.ShotSize/2))
 	}
 
-	// The dwarf, flashing once caught.
+	// The dwarf, flashing once caught, then its headstone.
 	d := w.Dwarf
 	n := at(d.X, d.Y)
 	n.mirror = d.FacesLeft
-	if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
+	if p.headstone() {
+		drawHeadstone(n)
+	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		pick := pickOnBack
 		if d.Digging {
 			pick = pickUp + int(p.ticks/digTicks)%2
@@ -372,6 +374,24 @@ func drawMushroom(n pen, frame int) {
 	n.circle(11, 10, 2.6, resurrect64.Lavender)
 	n.circle(20, 8, 2, resurrect64.White)
 	n.circle(22, 14, 2.4, resurrect64.Lavender)
+}
+
+// drawHeadstone is the dwarf's grave: a round-topped stone reading RIP, on a
+// mound of earth.
+func drawHeadstone(n pen) {
+	n.circle(16, 28, 3.2, resurrect64.Bark)
+	n.rect(1, 26.5, 30, 5, 2.4, resurrect64.Bark)
+	n.circle(16, 12, 11.5, resurrect64.Dusk)
+	n.rect(4.5, 12, 23, 16, 1, resurrect64.Dusk)
+	n.circle(16, 12, 10.2, resurrect64.Fog)
+	n.rect(5.8, 12, 20.4, 14.8, 0.5, resurrect64.Fog)
+	for _, r := range [...][4]float64{
+		{7, 10, 1.6, 9}, {7, 10, 5, 1.6}, {10.6, 10, 1.6, 4.8}, {7, 13.6, 5, 1.6}, {10.6, 15, 1.6, 4},
+		{14.6, 10, 1.6, 9},
+		{18.6, 10, 1.6, 9}, {18.6, 10, 5.6, 1.6}, {22.6, 10, 1.6, 5}, {18.6, 13.4, 5.6, 1.6},
+	} {
+		n.rect(r[0], r[1], r[2], r[3], 0.3, resurrect64.Ink)
+	}
 }
 
 func drawShot(dst *ebiten.Image, x, y, r float64) {

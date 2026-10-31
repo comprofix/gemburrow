@@ -325,9 +325,27 @@ func TestSprites(t *testing.T) {
 	if size["shot"] != config.ShotSize {
 		t.Errorf("sprite %q is not %d square", "shot", config.ShotSize)
 	}
-	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "dwarf_dig", "goblin", "goblin_scared", "troll", "troll_scared", "mushroom", "sack", "gold"} {
+	for _, name := range []string{"earth", "tunnel", "jewel", "dwarf", "dwarf_dig", "goblin", "goblin_scared", "troll", "troll_scared", "mushroom", "sack", "gold", "headstone"} {
 		if size[name] != config.CellSize {
 			t.Errorf("sprite %q is not %d square", name, config.CellSize)
 		}
+	}
+}
+
+func TestACaughtDwarfFlashesThenLeavesAHeadstone(t *testing.T) {
+	h, p := start(t)
+	w := p.World()
+	w.Goblins = []world.Goblin{{X: w.Dwarf.X, Y: w.Dwarf.Y}}
+	h.Ticks(1)
+	if !w.Caught || p.headstone() {
+		t.Fatalf("caught %v, headstone %v", w.Caught, p.headstone())
+	}
+	h.Ticks(config.CaughtFlashTicks)
+	if !p.headstone() {
+		t.Error("no headstone after the flashing")
+	}
+	h.Ticks(config.CaughtTicks)
+	if w.Caught || p.headstone() {
+		t.Errorf("after the pause: caught %v, headstone %v", w.Caught, p.headstone())
 	}
 }

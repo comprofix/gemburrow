@@ -50,6 +50,7 @@ type Play struct {
 	ticks  int64
 	clear  int // ticks left of the level clear banner
 	caught int // ticks left of the pause after being caught
+	dead   int // ticks since being caught
 }
 
 // New starts a game at a skill.
@@ -105,6 +106,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 		return nil
 	case p.caught > 0:
 		p.caught--
+		p.dead++
 		if p.caught == 0 {
 			if p.world.Over {
 				s := ctx.Session
@@ -152,6 +154,7 @@ func (p *Play) Update(ctx *scene.Context) error {
 		case world.DwarfCaught:
 			ctx.Audio.PlayEffect(Caught)
 			ctx.Shake.Start(shakeTicks, shakePixels)
+			p.dead = 0
 			p.caught = config.CaughtTicks
 			if p.world.Over {
 				p.caught = config.GameOverTicks
@@ -255,10 +258,12 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 		shot.Draw(dst, 0, float64(config.FieldX+s.X-shot.W/2), float64(config.FieldY+s.Y-shot.H/2), false)
 	}
 
-	// The dwarf, flashing once caught.
+	// The dwarf, flashing once caught, then its headstone.
 	d := w.Dwarf
 	dx, dy := config.FieldX+d.X, config.FieldY+d.Y
-	if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
+	if p.headstone() {
+		sheet.Sprite("headstone").Draw(dst, 0, float64(dx), float64(dy), false)
+	} else if !w.Caught || (p.ticks/flashTicks)%2 == 0 {
 		if d.Digging {
 			sheet.Sprite("dwarf_dig").Draw(dst, int(p.ticks/digTicks), float64(dx), float64(dy), d.FacesLeft)
 		} else {
@@ -275,6 +280,11 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	case w.Over:
 		banner(ctx, dst, "GAME OVER")
 	}
+}
+
+// headstone reports whether the caught dwarf has given way to its headstone.
+func (p *Play) headstone() bool {
+	return p.world.Caught && p.dead >= config.CaughtFlashTicks
 }
 
 // fleeing reports whether goblins are drawn afraid: all through a chase, flashing
