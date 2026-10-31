@@ -234,16 +234,16 @@ func (p *Play) Draw(ctx *scene.Context, dst *ebiten.Image) {
 	}
 
 	// The goblins and the shot.
-	walker, digger, scared := sheet.Sprite("goblin"), sheet.Sprite("goblin_digger"), sheet.Sprite("goblin_scared")
+	goblin, troll := sheet.Sprite("goblin"), sheet.Sprite("troll")
+	if p.fleeing() {
+		goblin, troll = sheet.Sprite("goblin_scared"), sheet.Sprite("troll_scared")
+	}
 	for i, g := range w.Goblins {
-		goblin := walker
+		picture := goblin
 		if g.Troll > 0 {
-			goblin = digger
+			picture = troll
 		}
-		if p.fleeing() {
-			goblin = scared
-		}
-		goblin.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
+		picture.Draw(dst, int(p.ticks/goblinTicks)+i, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), g.FacesLeft)
 		if debug.Enabled {
 			debug.Box(dst, float64(config.FieldX+g.X), float64(config.FieldY+g.Y), config.CellSize, config.CellSize, sc.Highlight)
 		}

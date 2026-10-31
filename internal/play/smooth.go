@@ -127,7 +127,11 @@ func (p *Play) drawSmooth(ctx *scene.Context, dst *ebiten.Image) {
 	for i, g := range w.Goblins {
 		n := at(g.X, g.Y)
 		n.mirror = g.FacesLeft
-		drawGoblin(n, int(p.ticks/goblinTicks)+i, g.Troll > 0, p.fleeing())
+		if g.Troll > 0 {
+			drawTroll(n, int(p.ticks/goblinTicks)+i, p.fleeing())
+		} else {
+			drawGoblin(n, int(p.ticks/goblinTicks)+i, p.fleeing())
+		}
 		if debug.Enabled {
 			debug.Box(dst, n.x, n.y, float64(s*config.CellSize), float64(s*config.CellSize), sc.Highlight)
 		}
@@ -240,11 +244,8 @@ func drawDwarf(n pen, frame int) {
 	n.poly(resurrect64.Fog, 8, 7, 9, 3, 13, 1, 19, 1, 23, 3, 24, 7)
 }
 
-func drawGoblin(n pen, frame int, digging, afraid bool) {
+func drawGoblin(n pen, frame int, afraid bool) {
 	skin, shade, cloth := resurrect64.Emerald, resurrect64.Forest, resurrect64.Grape
-	if digging {
-		skin, shade, cloth = resurrect64.Orange, resurrect64.Rust, resurrect64.Maroon
-	}
 	if afraid {
 		skin, shade, cloth = resurrect64.Lavender, resurrect64.Violet, resurrect64.Grape
 	}
@@ -260,10 +261,34 @@ func drawGoblin(n pen, frame int, digging, afraid bool) {
 	n.circle(14, 11, 1, resurrect64.Ink)
 	n.circle(20, 11, 1, resurrect64.Ink)
 	n.line(12, 16, 20, 16, 1.2, resurrect64.Ink)
-	if digging {
-		n.line(22, 22, 29, 18, 2, shade)
-		n.line(29, 18, 29, 24, 2, resurrect64.Fog)
+}
+
+// drawTroll is a goblin swollen into a cave troll (DESIGN D8): a hulking stony
+// brute that fills its cell, with a heavy brow, tusks and huge clawed hands.
+func drawTroll(n pen, frame int, afraid bool) {
+	skin, shade, belly := resurrect64.Slate, resurrect64.Charcoal, resurrect64.Sage
+	if afraid {
+		skin, shade, belly = resurrect64.Lavender, resurrect64.Violet, resurrect64.White
 	}
+	step := 1.5 * math.Copysign(1, float64(frame%2)-0.5)
+	n.rect(7+step, 26, 8, 5, 2, shade)
+	n.rect(17-step, 26, 8, 5, 2, shade)
+	n.rect(4, 13, 24, 15, 5, skin)
+	n.rect(10, 18, 12, 8, 3, belly)
+	n.rect(0.5, 14, 6.5, 13, 3, skin)
+	n.rect(25, 14, 6.5, 13, 3, skin)
+	n.circle(3.5, 27, 3.8, shade)
+	n.circle(28.5, 27, 3.8, shade)
+	for _, x := range [...]float64{1, 4, 25.5, 28.5} {
+		n.poly(resurrect64.White, x, 29, x+2.5, 29, x+1.2, 32)
+	}
+	n.circle(16, 9.5, 9, skin)
+	n.poly(shade, 8, 6, 15, 8.5, 17, 8.5, 24, 6, 24, 9, 17, 11, 15, 11, 8, 9)
+	n.circle(12, 11.5, 1.6, resurrect64.Coral)
+	n.circle(20, 11.5, 1.6, resurrect64.Coral)
+	n.rect(10.5, 14.5, 11, 2.5, 1, shade)
+	n.poly(resurrect64.White, 11, 16.5, 13.5, 16.5, 12, 12.5)
+	n.poly(resurrect64.White, 18.5, 16.5, 21, 16.5, 20, 12.5)
 }
 
 // drawMushroom is the bonus: a glowing cap on a pale stem, its glow pulsing.
